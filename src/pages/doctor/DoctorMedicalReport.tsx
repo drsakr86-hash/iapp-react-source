@@ -235,6 +235,9 @@ export default function DoctorMedicalReport() {
   }
 
   const docs = data ? availableDocuments(data) : [];
+  // documentComponentFor() looks up a stable, module-level component
+  // reference from DOCUMENT_REGISTRY (registry.tsx) — it never creates a
+  // new component type, so this is safe despite the lint warning below.
   const DocComponent = documentComponentFor(docType);
 
   return (
