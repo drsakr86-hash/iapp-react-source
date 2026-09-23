@@ -53,28 +53,28 @@ export async function primeRealtimeAuth(): Promise<void> {
 }
 
 /* -------------------------------------------------------------------------
- * Row cast helpers — TEMPORARY, and deliberately in one place.
+ * Row shape helpers — deliberately in one place.
  * -------------------------------------------------------------------------
- * While src/types/database.types.ts is the placeholder, the client cannot
- * infer a row shape, so PostgREST's generic union (including its error
- * shape) is what comes back and a direct `as Row` cast is rejected.
- *
- * These three helpers concentrate that cast into one file instead of
- * scattering `as unknown as T` across every service. They are a marker, not
- * a solution: once `supabase gen types` has been run, the compiler will
- * infer real shapes, these become no-ops, and every call site can drop them.
- * Until then, nothing here is type-checked against the database — which is
- * exactly why generating the types is still the top of the list.
+ * `database.types.ts` now holds the real generated schema, and every COLS
+ * constant is a `const`-asserted string literal (not built with `+`, which
+ * widens to `string` and blinds the compiler — see clinics.ts for why).
+ * With both of those true, `.select(COLS)` is inferred by supabase-js down
+ * to the exact row shape, so these no longer *cast* — they only default a
+ * possibly-null result and let TypeScript check `data` against `T`
+ * structurally. If a call site's declared `T` doesn't actually match what
+ * the query returns, this is now a compile error at that call site instead
+ * of a silently wrong runtime value — that is the point of removing the
+ * `as` casts, not an incidental effect.
  * ---------------------------------------------------------------------- */
 
-export function rows<T>(data: unknown): T[] {
-  return (data as T[] | null) ?? [];
+export function rows<T>(data: T[] | null): T[] {
+  return data ?? [];
 }
 
-export function one<T>(data: unknown): T {
-  return data as T;
+export function one<T>(data: T): T {
+  return data;
 }
 
-export function maybe<T>(data: unknown): T | null {
-  return (data as T | null) ?? null;
+export function maybe<T>(data: T | null): T | null {
+  return data ?? null;
 }

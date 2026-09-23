@@ -37,7 +37,7 @@ export interface ClinicRow {
 }
 
 const COLS =
-  'id, code, name_ar, name_en, address, phone, whatsapp, icon, timezone, slot_minutes, is_active';
+  'id, code, name_ar, name_en, address, phone, whatsapp, icon, timezone, slot_minutes, is_active' as const;
 
 export async function list(): Promise<ClinicRow[]> {
   const { data, error } = await supabase
@@ -125,6 +125,11 @@ export async function create(input: ClinicInput): Promise<ClinicRow> {
     ({ data, error } = await supabase.from('clinics').insert(payload).select(COLS).single());
   }
   if (error) throw new Error(reportError(error, 'إضافة العيادة'));
+  // The reassignment above stops TS from narrowing `data` past `error` the
+  // way it does for a plain `const` destructure elsewhere in this file
+  // (see update()/setActive()) — data is never actually null here once
+  // error is null, so this documents that instead of casting it away.
+  if (!data) throw new Error('إضافة العيادة: لم يرجع أي صف رغم عدم وجود خطأ');
   return one<ClinicRow>(data);
 }
 

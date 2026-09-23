@@ -8,7 +8,7 @@ import type { AccountRow, AccountKind } from '../../types/accounting.types';
 export type { AccountRow, AccountKind };
 
 const COLS =
-  'id, clinic_id, code, name_ar, name_en, kind, currency, allow_overdraft, is_active, notes';
+  'id, clinic_id, code, name_ar, name_en, kind, currency, allow_overdraft, is_active, notes' as const;
 
 export async function list(): Promise<AccountRow[]> {
   const { data, error } = await table('accounts')

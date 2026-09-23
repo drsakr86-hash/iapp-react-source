@@ -46,7 +46,7 @@ export interface PatientRow {
 }
 
 const COLS =
-  'id, patient_code, full_name, phone, gender, date_of_birth, is_active';
+  'id, patient_code, full_name, phone, gender, date_of_birth, is_active' as const;
 
 function patientsTable() {
   return supabase.schema('iapp').from('patients');

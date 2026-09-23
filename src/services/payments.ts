@@ -51,8 +51,7 @@ export interface PaymentRow {
 }
 
 const COLS =
-  'id, patient_id, visit_id, clinic_id, service_id, amount, amount_paid, discount, ' +
-  'currency, method, status, receipt_no, notes, paid_at, created_at';
+  'id, patient_id, visit_id, clinic_id, service_id, amount, amount_paid, discount, currency, method, status, receipt_no, notes, paid_at, created_at' as const;
 
 export async function listByPatient(patientId: string): Promise<PaymentRow[]> {
   const { data, error } = await supabase

@@ -84,8 +84,7 @@ export async function claimPatientRecord(code: string, phone: string): Promise<C
 /* ── appointments ────────────────────────────────────────────────── */
 
 const APPOINTMENT_COLS =
-  'id, scheduled_date, scheduled_time, appointment_type, status, notes, ' +
-  'clinics(name_ar, name_en, address, phone), doctors(full_name_ar, title_ar)';
+  'id, scheduled_date, scheduled_time, appointment_type, status, notes, clinics(name_ar, name_en, address, phone), doctors(full_name_ar, title_ar)' as const;
 
 export interface MyAppointmentRow {
   id: string;
@@ -156,8 +155,7 @@ export async function bookMyAppointment(input: {
 /* ── prescriptions (glasses + medication) ───────────────────────────── */
 
 const PRESCRIPTION_COLS =
-  'id, prescribed_on, is_glasses, eye, notes, legacy_medicines_text, ' +
-  'prescription_items(id, free_text, dose, frequency, duration, instructions, medication_id)';
+  'id, prescribed_on, is_glasses, eye, notes, legacy_medicines_text, prescription_items(id, free_text, dose, frequency, duration, instructions, medication_id)' as const;
 
 export interface MyPrescriptionRow {
   id: string;
@@ -222,10 +220,7 @@ export async function myPrescriptions(): Promise<MyPrescriptionRow[]> {
 /* ── examinations ────────────────────────────────────────────────── */
 
 const EXAMINATION_COLS =
-  'id, exam_date, chief_complaint, va_right, va_left, ' +
-  'diagnoses(diagnosis_text, is_primary), ' +
-  'follow_ups(due_date, reason), ' +
-  'iop_measurements(eye, value_mmhg, measured_at)';
+  'id, exam_date, chief_complaint, va_right, va_left, diagnoses(diagnosis_text, is_primary), follow_ups(due_date, reason), iop_measurements(eye, value_mmhg, measured_at)' as const;
 
 export interface MyExaminationRow {
   id: string;

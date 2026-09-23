@@ -6,7 +6,7 @@ import { table } from './_rpc';
 import { reportError } from '../../utils/errors';
 import type { ExpenseCategoryRow } from '../../types/accounting.types';
 
-const COLS = 'id, code, name_ar, name_en, is_active, sort_order';
+const COLS = 'id, code, name_ar, name_en, is_active, sort_order' as const;
 
 export async function list(): Promise<ExpenseCategoryRow[]> {
   const { data, error } = await table('expense_categories')

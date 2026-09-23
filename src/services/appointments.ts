@@ -16,7 +16,7 @@
  * fix. Ask for the slot; let the database refuse it.
  * ---------------------------------------------------------------------- */
 
-import { supabase, one } from './supabase';
+import { supabase } from './supabase';
 import { APPOINTMENT_STATUS, type AppointmentStatus, type StatusLabel } from '../types/domain';
 import { reportError } from '../utils/errors';
 
@@ -76,10 +76,14 @@ async function rpc<T>(fn: AppointmentRpcName, args: Record<string, unknown> = {}
   /* The RPC name is checked against the real set of database functions above
      (catches typos); the per-function argument shape is already correct at
      every call site below, so it is cast here rather than re-deriving a
-     union of all nine argument shapes just to satisfy the generic helper. */
+     union of all nine argument shapes just to satisfy the generic helper.
+     `T` is this function's own type parameter, fixed by each call site, not
+     something derivable from `data` here — so this is a deliberate local
+     cast, not a use of services/supabase.ts's `one()`, which only accepts
+     an argument already assignable to the type it returns. */
   const { data, error } = await supabase.rpc(fn, args as never);
   if (error) throw new Error(reportError(error, 'الموعد'));
-  return one<T>(data);
+  return data as T;
 }
 
 /**

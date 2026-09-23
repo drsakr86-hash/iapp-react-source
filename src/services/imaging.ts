@@ -40,7 +40,7 @@
 
 import { supabase, one, rows } from './supabase';
 import { reportError } from '../utils/errors';
-import type { Eye, Modality, OrderStatus, StudyStatus, Urgency } from '../types/domain';
+import type { Eye, Modality, OrderStatus, StoredModality, StudyStatus, Urgency } from '../types/domain';
 import { MODALITY_AR, URGENCY_AR } from '../types/domain';
 import type { Json } from '../types/database.types';
 
@@ -50,10 +50,7 @@ export const SIGNED_URL_TTL_SECONDS = 300;
 const bucket = () => supabase.storage.from(IMAGING_BUCKET);
 
 const STUDY_COLS =
-  'id, patient_id, visit_id, examination_id, modality, eye, study_date, captured_on, ' +
-  'device, technician, clinical_indication, storage_provider, storage_path, ' +
-  'thumbnail_path, legacy_url, file_name, mime_type, size_bytes, width, height, ' +
-  'doctor_report, reported_by, reported_at, status, notes, created_at, created_by';
+  'id, patient_id, visit_id, examination_id, modality, eye, study_date, captured_on, device, technician, clinical_indication, storage_provider, storage_path, thumbnail_path, legacy_url, file_name, mime_type, size_bytes, width, height, doctor_report, reported_by, reported_at, status, notes, created_at, created_by' as const;
 
 export interface Study {
   id: string;
@@ -79,7 +76,8 @@ export interface OrderItem {
   id: string;
   order_id: string;
   seq: number;
-  modality: Modality;
+  /** Read from the DB — can be a retired value; see StoredModality. */
+  modality: StoredModality;
   eye: Eye;
   notes: string | null;
   image_id: string | null;
@@ -485,8 +483,7 @@ export async function createOrder(input: OrderInput): Promise<ImagingOrder> {
 }
 
 const ORDER_COLS =
-  'id, order_no, patient_id, visit_id, doctor_id, clinic_id, ordered_on, ' +
-  'urgency, status, clinical_indication, clinical_notes, created_at';
+  'id, order_no, patient_id, visit_id, doctor_id, clinic_id, ordered_on, urgency, status, clinical_indication, clinical_notes, created_at' as const;
 
 export async function ordersByPatient(patientId: string): Promise<ImagingOrder[]> {
   const { data, error } = await supabase

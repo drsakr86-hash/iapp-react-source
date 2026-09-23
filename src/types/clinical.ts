@@ -11,7 +11,7 @@
  * are joined client-side by the service layer and exist in no table.
  * ---------------------------------------------------------------------- */
 
-import type { Eye, Modality, AppointmentStatus } from './domain';
+import type { Eye, StoredModality, AppointmentStatus } from './domain';
 export interface Clinic {
   id: string;
   name_ar: string | null;
@@ -272,7 +272,8 @@ export interface MedicalImage {
   patient_id: string;
   visit_id: string | null;
   examination_id: string | null;
-  modality: Modality;
+  /** Read from the DB — can be a retired value; see StoredModality. */
+  modality: StoredModality;
   eye: Eye | null;
   study_date: string | null;
   captured_on: string | null;

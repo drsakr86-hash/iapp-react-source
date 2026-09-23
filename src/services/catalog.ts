@@ -26,7 +26,8 @@ export interface ServiceRow {
   is_active: boolean;
 }
 
-const COLS = 'id, code, name_ar, name_en, category, default_price, currency, icon, is_active';
+const COLS =
+  'id, code, name_ar, name_en, category, default_price, currency, icon, is_active' as const;
 
 export async function list(): Promise<ServiceRow[]> {
   const { data, error } = await supabase

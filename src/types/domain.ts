@@ -92,20 +92,35 @@ export const MODALITY_AR = {
 export type Modality = keyof typeof MODALITY_AR;
 
 /** Retired enum labels: still readable in old rows, never offered for entry. */
-export const MODALITY_LEGACY_AR: Record<string, string> = {
+export const MODALITY_LEGACY_AR = {
   optos: 'Optos (قديم)',
   topography: 'طبوغرافيا (قديم)',
   biometry: 'قياسات حيوية (قديم)',
   anterior_segment: 'المقطع الأمامي (قديم)',
   xray: 'أشعة (قديم)',
   unknown: 'غير محدد',
-};
+} as const satisfies Record<string, string>;
+
+/**
+ * iapp.image_modality (the real Postgres enum) has more members than
+ * `Modality`: the six keys of `MODALITY_LEGACY_AR` above, still present on
+ * rows written before those values were retired from the entry picker.
+ * A row read from `imaging_order_items` or `medical_images` can legally
+ * hold any of these — that is exactly what `modalityLabel()` already
+ * accounts for — so any type that models a *stored* modality must be this
+ * union, not the narrower `Modality` used for new-entry pickers/forms.
+ */
+export type StoredModality = Modality | keyof typeof MODALITY_LEGACY_AR;
 
 export const MODALITIES = Object.keys(MODALITY_AR) as Modality[];
 
 export function modalityLabel(v: string | null | undefined): string {
   if (!v) return '—';
-  return (MODALITY_AR as Record<string, string>)[v] ?? MODALITY_LEGACY_AR[v] ?? v;
+  return (
+    (MODALITY_AR as Record<string, string>)[v] ??
+    (MODALITY_LEGACY_AR as Record<string, string>)[v] ??
+    v
+  );
 }
 
 /** Laterality — iapp.eye_side. */

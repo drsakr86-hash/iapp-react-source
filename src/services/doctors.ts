@@ -24,8 +24,10 @@
  *
  * DISPLAY NAME RESOLUTION — one rule, used everywhere:
  *
- *   doctors.full_name_ar + doctors.title_ar    (clinical record wins;
- *                                                name first, title after)
+ *   doctors.title_ar + doctors.full_name_ar    (clinical record wins;
+ *                                                title first, name after —
+ *                                                "د. أحمد سعيد", not the
+ *                                                reverse; see tests/medical.mjs)
  *   → profiles.full_name                       (fallback for non-doctors)
  *   → email local part                         (last resort, never blank)
  *
@@ -54,8 +56,7 @@ export interface DoctorRecord {
 }
 
 const COLS =
-  'id, profile_id, full_name_ar, full_name_en, short_name, title_ar, ' +
-  'license_no, specialty, phone, email, is_primary, is_active';
+  'id, profile_id, full_name_ar, full_name_en, short_name, title_ar, license_no, specialty, phone, email, is_primary, is_active' as const;
 
 /**
  * The doctor row for the signed-in user, or null if this login has none.
@@ -159,7 +160,7 @@ export function displayName(
   if (doctor) {
     const title = str(doctor.title_ar);
     const name = str(doctor.full_name_ar);
-    if (name) return title ? `${name} ${title}` : name;
+    if (name) return title ? `${title} ${name}` : name;
   }
   const fromProfile = str(profile?.fullName);
   if (fromProfile) return fromProfile;
