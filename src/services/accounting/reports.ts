@@ -57,7 +57,12 @@ export async function serviceRevenueSummary(): Promise<ServiceRevenueSummaryRow[
  *  or scoped to one — built from dailySummary(), never a separate query
  *  path that could drift from it. */
 export async function todaySummary(clinicId?: string | null) {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
   const rows = await dailySummary(today, today, clinicId);
   return rows.reduce(
     (acc, r) => ({
