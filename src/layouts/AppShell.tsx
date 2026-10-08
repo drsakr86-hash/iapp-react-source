@@ -28,7 +28,7 @@
  * bottom padding to clear it; that padding is now a static constant
  * (--bottomnav-h in theme.css), not a runtime measurement, per instruction.
  */
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useDoctor } from '../hooks/useDoctor';
 import { ROLE_AR } from '../types/domain';
@@ -41,6 +41,8 @@ interface NavItem {
   label: string;
   icon: string;
   end?: boolean;
+  /** Extra path prefixes that should light this tab up (e.g. screens reached from «المزيد»). */
+  also?: string[];
 }
 
 /**
@@ -52,13 +54,20 @@ const NAV: Record<Section, NavItem[]> = {
   doctor: [
     { to: '/doctor', label: 'اليوم', icon: '📅', end: true },
     { to: '/doctor/appointments', label: 'المواعيد', icon: '🗓️' },
-    { to: '/doctor/patients', label: 'ملف المريض', icon: '🩺' },
+    { to: '/doctor/patients', label: 'المرضى', icon: '🩺' },
     { to: '/doctor/payments', label: 'المدفوعات', icon: '💳' },
-    { to: '/doctor/clinics', label: 'العيادات', icon: '🏥' },
-    { to: '/doctor/services', label: 'الخدمات', icon: '🧾' },
-    { to: '/doctor/lists', label: 'القوائم', icon: '⚙️' },
-    { to: '/accounting', label: 'المحاسبة', icon: '📊' },
-    { to: '/doctor/profile', label: 'ملفي', icon: '👤' },
+    {
+      to: '/doctor/more',
+      label: 'المزيد',
+      icon: '☰',
+      also: [
+        '/doctor/clinics',
+        '/doctor/services',
+        '/doctor/lists',
+        '/doctor/profile',
+        '/accounting',
+      ],
+    },
   ],
   accounting: [
     { to: '/accounting', label: 'الرئيسية', icon: '📊', end: true },
@@ -130,14 +139,34 @@ export function AppShell({ section }: { section: Section }) {
       </header>
 
       <nav className="bottomnav" aria-label="التنقّل">
-        {items.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className="bottomnav__item">
-            <span className="bottomnav__icon" aria-hidden="true">
-              {item.icon}
-            </span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {items.map((item) =>
+          item.also ? (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="bottomnav__item"
+              aria-current={
+                [item.to, ...item.also].some(
+                  (p) => location.pathname === p || location.pathname.startsWith(p + '/'),
+                )
+                  ? 'page'
+                  : undefined
+              }
+            >
+              <span className="bottomnav__icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+            </Link>
+          ) : (
+            <NavLink key={item.to} to={item.to} end={item.end} className="bottomnav__item">
+              <span className="bottomnav__icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+            </NavLink>
+          ),
+        )}
       </nav>
 
       {isAccounting ? <AccountingSubNav /> : null}
