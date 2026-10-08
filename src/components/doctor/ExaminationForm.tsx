@@ -22,6 +22,8 @@
  * ---------------------------------------------------------------------- */
 
 import { useEffect, useState } from 'react';
+import { useDraftState } from '../../hooks/useDraft';
+import { DraftBanner } from '../ui/DraftBanner';
 import * as examinationsSvc from '../../services/examinations';
 import * as M from '../../utils/models';
 import type { Examination, Patient } from '../../types/clinical';
@@ -100,7 +102,7 @@ export function ExaminationForm({
     return () => { active = false; };
   }, []);
 
-  const [f, setF] = useState<Record<string, string>>(() => ({
+  const initialF = (): Record<string, string> => ({
     exam_date: exam?.exam_date ?? M.today(),
     chief_complaint: exam?.chief_complaint ?? '',
     va_right: exam?.va_right ?? '',
@@ -133,11 +135,11 @@ export function ExaminationForm({
     diagnosis_eye: '',
     follow_up_date: '',
     follow_up_reason: '',
-  }));
+  });
 
   // Findings start from the existing map when editing, so a correction edits
   // the previous value rather than starting from blank.
-  const [findings, setFindings] = useState<FindingState>(() => {
+  const initialFindings = (): FindingState => {
     const init: FindingState = {};
     const map = exam?._map;
     for (const def of [...M.ANT_FIELDS, ...M.POST_FIELDS]) {
@@ -147,7 +149,21 @@ export function ExaminationForm({
       };
     }
     return init;
-  });
+  };
+
+  /* In-progress text is kept as a local draft (see utils/draftStore): a
+     dropped connection or an accidental close no longer loses the exam.
+     A new exam is scoped to patient+visit; an edit to that exam's id. */
+  const draft = useDraftState<{ f: Record<string, string>; findings: FindingState }>(
+    exam ? ['exam-edit', exam.id] : ['exam', patient.id, visitId ?? 'none'],
+    () => ({ f: initialF(), findings: initialFindings() }),
+  );
+  const f = draft.value.f;
+  const findings = draft.value.findings;
+  const setF = (u: (p: Record<string, string>) => Record<string, string>) =>
+    draft.set((d) => ({ ...d, f: u(d.f) }));
+  const setFindings = (u: (p: FindingState) => FindingState) =>
+    draft.set((d) => ({ ...d, findings: u(d.findings) }));
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -244,6 +260,7 @@ export function ExaminationForm({
         await examinationsSvc.update(exam.id, row);
         toast.success('تم حفظ التعديل');
       }
+      draft.clear();
       onSaved();
     } catch (e) {
       setError(M.dbError(e));
@@ -398,6 +415,7 @@ export function ExaminationForm({
       onClose={onClose}
       wide
     >
+      <DraftBanner restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       <div className="grid-2">
         <Field label="تاريخ الفحص *">
           <Input

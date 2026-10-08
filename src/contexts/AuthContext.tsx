@@ -13,6 +13,7 @@
  * confusing loop the legacy app was fixed to avoid.
  * ---------------------------------------------------------------------- */
 
+import { browserStorage, clearAllDrafts } from '../utils/draftStore';
 import {
   useCallback,
   useEffect,
@@ -97,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await authService.signOut();
+    /* Unsaved clinical drafts must not outlive the session on a shared PC. */
+    clearAllDrafts(browserStorage());
     if (!mounted.current) return;
     setProfile(null);
     setProblem(null);

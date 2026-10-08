@@ -6,3 +6,6 @@ export { Tag } from './Tag';
 export { Toasts } from './Toasts';
 export { Modal } from './Modal';
 export { EmptyState } from './EmptyState';
+export { Tabs, TabPanel } from './Tabs';
+export type { TabDef } from './Tabs';
+export { DraftBanner } from './DraftBanner';

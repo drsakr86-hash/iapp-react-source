@@ -23,7 +23,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Button, Card, EmptyState, Tag } from '../../components/ui';
+import { Button, Card, EmptyState, Tag, TabPanel, Tabs } from '../../components/ui';
+import { PatientBar } from '../../components/doctor/PatientBar';
 import { MedText, MedValue } from '../../components/medical/Medical';
 import { GlassesRxForm } from '../../components/rx/GlassesRxForm';
 import { MedicationRxForm } from '../../components/rx/MedicationRxForm';
@@ -82,6 +83,7 @@ export default function DoctorPatientRecord() {
   const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
   const [linkedAppointment, setLinkedAppointment] = useState<BoardRow | null>(null);
   const [showVisitForm, setShowVisitForm] = useState(false);
+  const [tab, setTab] = useState<'visit' | 'treatment' | 'history' | 'imaging'>('visit');
   const [completing, setCompleting] = useState(false);
 
   const [exams, setExams] = useState<Examination[]>([]);
@@ -244,12 +246,14 @@ export default function DoctorPatientRecord() {
   }, [urlAction, patientId, activeVisit]);
 
   function pickPatient(id: string) {
+    setTab('visit');
     setPatientId(id);
     setSearch('');
     setPatients([]);
   }
 
   function changePatient() {
+    setTab('visit');
     setPatientId('');
     setPatient(null);
     setActiveVisit(null);
@@ -490,6 +494,28 @@ export default function DoctorPatientRecord() {
             </div>
           </Card>
 
+          <PatientBar
+            name={patient.full_name}
+            code={patient.patient_code}
+            age={age}
+            allergies={patient.allergies}
+            visitOpen={Boolean(activeVisit)}
+          >
+            <Tabs
+              label="أقسام ملف المريض"
+              idPrefix="record"
+              value={tab}
+              onChange={setTab}
+              tabs={[
+                { key: 'visit', label: 'الكشف' },
+                { key: 'treatment', label: 'العلاج والمتابعة' },
+                { key: 'history', label: 'السجل', badge: visits.length + exams.length },
+                { key: 'imaging', label: 'الأشعة والصور', badge: orders.length + studies.length },
+              ]}
+            />
+          </PatientBar>
+
+          <TabPanel active={tab === 'visit'} id="visit" idPrefix="record">
           {/* ── Today's Visit ──────────────────────────────────────── */}
           <Card title="الزيارة">
             {activeVisit ? (
@@ -507,57 +533,6 @@ export default function DoctorPatientRecord() {
             )}
           </Card>
 
-          {/* ── Visit History → Medical Report ─────────────────────── */}
-          <Card title="سجل الزيارات">
-            {visits.length ? (
-              <div className="stack" style={{ gap: 6 }}>
-                {visits.map((v) => (
-                  <div
-                    key={v.id}
-                    className="row"
-                    style={{ justifyContent: 'space-between', alignItems: 'center' }}
-                  >
-                    <span>
-                      <MedValue>{M.fmtDay(v.visit_date)}</MedValue>
-                      {v.visit_type ? ` — ${M.VISIT_TYPE[v.visit_type] ?? ''}` : ''}
-                      {!v.is_locked ? ' (مفتوحة)' : ''}
-                    </span>
-                    <span className="row" style={{ gap: 6 }}>
-                      <Link to={`/doctor/payments?patientId=${patient.id}&visitId=${v.id}`}>
-                        <Button variant="outline">تحصيل دفعة</Button>
-                      </Link>
-                      <Link to={`/doctor/patients/${patient.id}/report/${v.id}`}>
-                        <Button variant="outline">التقرير الطبي</Button>
-                      </Link>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">لا توجد زيارات مسجَّلة بعد</p>
-            )}
-          </Card>
-
-          {showVisitForm ? (
-            <VisitForm
-              patient={patient}
-              visit={activeVisit}
-              appointment={linkedAppointment}
-              doctorId={doctor?.id ?? null}
-              clinicId={activeVisit?.clinic_id ?? patient.primary_clinic_id ?? null}
-              onClose={() => setShowVisitForm(false)}
-              onSaved={(v) => {
-                setActiveVisit(v);
-                setShowVisitForm(false);
-                /* Starting a visit must land the doctor inside a usable
-                   examination immediately — not a saved dialog with no
-                   visible next step. This opens the SAME existing
-                   ExaminationForm below, not a new one. */
-                setShowExamForm(true);
-                void loadClinicalRecord();
-              }}
-            />
-          ) : null}
 
           {activeVisit ? (
             <>
@@ -646,6 +621,13 @@ export default function DoctorPatientRecord() {
                 </div>
               </Card>
 
+            </>
+          ) : null}
+          </TabPanel>
+
+          <TabPanel active={tab === 'treatment'} id="treatment" idPrefix="record">
+          {activeVisit ? (
+            <>
               {/* ── Treatment / Prescription ────────────────────── */}
               <GlassesRxForm
                 patientId={patient.id}
@@ -716,7 +698,42 @@ export default function DoctorPatientRecord() {
                 </Button>
               </Card>
             </>
-          ) : null}
+          ) : (
+            <EmptyState icon="🩺" text="ابدأ الكشف أولاً من تبويب «الكشف» لتظهر الوصفات والمتابعة." />
+          )}
+          </TabPanel>
+
+          <TabPanel active={tab === 'history'} id="history" idPrefix="record">
+          {/* ── Visit History → Medical Report ─────────────────────── */}
+          <Card title="سجل الزيارات">
+            {visits.length ? (
+              <div className="stack" style={{ gap: 6 }}>
+                {visits.map((v) => (
+                  <div
+                    key={v.id}
+                    className="row"
+                    style={{ justifyContent: 'space-between', alignItems: 'center' }}
+                  >
+                    <span>
+                      <MedValue>{M.fmtDay(v.visit_date)}</MedValue>
+                      {v.visit_type ? ` — ${M.VISIT_TYPE[v.visit_type] ?? ''}` : ''}
+                      {!v.is_locked ? ' (مفتوحة)' : ''}
+                    </span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <Link to={`/doctor/payments?patientId=${patient.id}&visitId=${v.id}`}>
+                        <Button variant="outline">تحصيل دفعة</Button>
+                      </Link>
+                      <Link to={`/doctor/patients/${patient.id}/report/${v.id}`}>
+                        <Button variant="outline">التقرير الطبي</Button>
+                      </Link>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">لا توجد زيارات مسجَّلة بعد</p>
+            )}
+          </Card>
 
           {/* ── Exam history ───────────────────────────────────────── */}
           <Card title={`سجل الفحوصات (${exams.length})`}>
@@ -754,6 +771,9 @@ export default function DoctorPatientRecord() {
             ))}
           </Card>
 
+          </TabPanel>
+
+          <TabPanel active={tab === 'imaging'} id="imaging" idPrefix="record">
           {/* ── Imaging (unchanged from the previous version) ───────── */}
           <ImagingOrderForm
             patientId={patient.id}
@@ -832,6 +852,30 @@ export default function DoctorPatientRecord() {
               </div>
             ))}
           </Card>
+          </TabPanel>
+
+          {showVisitForm ? (
+            <VisitForm
+              patient={patient}
+              visit={activeVisit}
+              appointment={linkedAppointment}
+              doctorId={doctor?.id ?? null}
+              clinicId={activeVisit?.clinic_id ?? patient.primary_clinic_id ?? null}
+              onClose={() => setShowVisitForm(false)}
+              onSaved={(v) => {
+                setActiveVisit(v);
+                setShowVisitForm(false);
+                /* Starting a visit must land the doctor inside a usable
+                   examination immediately — not a saved dialog with no
+                   visible next step. This opens the SAME existing
+                   ExaminationForm below, not a new one. */
+                setTab('visit');
+                setShowExamForm(true);
+                void loadClinicalRecord();
+              }}
+            />
+          ) : null}
+
         </>
       ) : null}
     </div>
