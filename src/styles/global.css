@@ -608,3 +608,15 @@ a { color: var(--accent); text-decoration: none; }
 }
 .exam2col__row-label { font-size: var(--fs-xs); color: var(--muted); }
 
+
+/* Confirmation / reason dialog (ConfirmProvider). Sits above .modal (60). */
+.confirm { z-index: 80; align-items: center; }
+.confirm__box { max-width: 420px; }
+.confirm__msg { margin: 0 0 var(--gap); line-height: 1.7; white-space: pre-wrap; }
+.confirm__actions {
+  display: flex;
+  gap: var(--gap-sm);
+  justify-content: flex-start;
+  margin-block-start: var(--gap);
+}
+.confirm__actions .btn { flex: 1 1 0; }

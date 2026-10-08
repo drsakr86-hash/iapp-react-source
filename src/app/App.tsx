@@ -2,6 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { DoctorProvider } from '../contexts/DoctorContext';
 import { ToastProvider } from '../contexts/ToastContext';
+import { ConfirmProvider } from '../contexts/ConfirmContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { Toasts } from '../components/ui';
 import { AppRoutes } from '../routes';
@@ -23,14 +24,16 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <AuthProvider>
-          <DoctorProvider>
-            <BrowserRouter basename="/iapp/app">
-              <AppRoutes />
-              <Toasts />
-            </BrowserRouter>
-          </DoctorProvider>
-        </AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <DoctorProvider>
+              <BrowserRouter basename="/iapp/app">
+                <AppRoutes />
+                <Toasts />
+              </BrowserRouter>
+            </DoctorProvider>
+          </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </ErrorBoundary>
   );

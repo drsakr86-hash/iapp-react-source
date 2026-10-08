@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, EmptyState, Spinner } from '../../components/ui';
 import { useToast } from '../../hooks/useToast';
+import { useConfirm } from '../../hooks/useConfirm';
 import * as doctorsSvc from '../../services/doctors';
 import type { DoctorRecord, DoctorInput, UnlinkedProfile } from '../../services/doctors';
 
@@ -35,6 +36,7 @@ const EMPTY: DoctorInput = {
 
 export function DoctorManagement() {
   const toast = useToast();
+  const { confirm } = useConfirm();
   const [doctors, setDoctors] = useState<DoctorRecord[]>([]);
   const [unlinked, setUnlinked] = useState<UnlinkedProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,15 @@ export function DoctorManagement() {
 
   async function toggleActive(d: DoctorRecord) {
     if (workingId) return;
-    if (d.is_active && !window.confirm(`هل تريد إيقاف ${d.full_name_ar}؟ يمكن التفعيل مرة أخرى لاحقاً.`)) {
+    if (
+      d.is_active &&
+      !(await confirm({
+        title: 'إيقاف الطبيب',
+        message: `هل تريد إيقاف ${d.full_name_ar}؟ يمكن التفعيل مرة أخرى لاحقاً.`,
+        confirmLabel: 'إيقاف',
+        danger: true,
+      }))
+    ) {
       return;
     }
     setWorkingId(d.id);

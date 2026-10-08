@@ -36,6 +36,7 @@ import { ComparisonView } from '../../components/doctor/ComparisonView';
 import { useDoctor } from '../../hooks/useDoctor';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useToast } from '../../hooks/useToast';
+import { useConfirm } from '../../hooks/useConfirm';
 import * as patientsSvc from '../../services/patients';
 import * as imaging from '../../services/imaging';
 import * as visitsSvc from '../../services/visits';
@@ -64,6 +65,7 @@ export default function DoctorPatientRecord() {
   useDocumentTitle('ملف المريض');
   const { doctor, displayName } = useDoctor();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const params = useParams<{ patientId?: string }>();
   const [searchParams] = useSearchParams();
   const urlAppointmentId = searchParams.get('appointment');
@@ -299,7 +301,7 @@ export default function DoctorPatientRecord() {
 
   async function removeDiagnosis(id: string) {
     if (!patient || dxWorking) return;
-    if (!window.confirm('حذف هذا التشخيص؟')) return;
+    if (!(await confirm({ title: 'حذف التشخيص', message: 'حذف هذا التشخيص؟', confirmLabel: 'حذف', danger: true }))) return;
     setDxWorking(id);
     try {
       await examinationsSvc.diagnoses.remove(id);
@@ -339,7 +341,7 @@ export default function DoctorPatientRecord() {
 
   async function completeVisit() {
     if (!activeVisit || completing || !patient) return;
-    if (!window.confirm('إنهاء هذه الزيارة؟ لن يمكن التعديل عليها بعد ذلك.')) return;
+    if (!(await confirm({ title: 'إنهاء الزيارة', message: 'إنهاء هذه الزيارة؟ لن يمكن التعديل عليها بعد ذلك.', confirmLabel: 'إنهاء الزيارة' }))) return;
     setCompleting(true);
     try {
       await visitsSvc.complete(activeVisit.id);
@@ -406,11 +408,14 @@ export default function DoctorPatientRecord() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  !window.confirm(
-                    `حذف ملف "${patient.full_name}" نهائياً من القوائم؟ (السجلات الطبية المرتبطة تبقى محفوظة في قاعدة البيانات)`,
-                  )
+                  !(await confirm({
+                    title: 'حذف ملف المريض',
+                    message: `حذف ملف "${patient.full_name}" نهائياً من القوائم؟ (السجلات الطبية المرتبطة تبقى محفوظة في قاعدة البيانات)`,
+                    confirmLabel: 'حذف',
+                    danger: true,
+                  }))
                 )
                   return;
                 patientsSvc
@@ -811,8 +816,8 @@ export default function DoctorPatientRecord() {
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (!window.confirm('حذف هذه الصورة؟')) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: 'حذف الصورة', message: 'حذف هذه الصورة؟', confirmLabel: 'حذف', danger: true }))) return;
                       imaging
                         .deleteStudy(s)
                         .then(() => void loadClinicalRecord())

@@ -116,7 +116,9 @@ export function AppShell({ section }: { section: Section }) {
       <header className="topbar">
         <span className="topbar__title">I App — {TITLE[section]}</span>
         <span className="topbar__spacer" />
-        <span style={{ fontSize: 10, opacity: 0.5 }}>build-2026-09-13-hashrouter</span>
+        {import.meta.env.DEV ? (
+          <span style={{ fontSize: 10, opacity: 0.5 }}>build-2026-09-13-hashrouter</span>
+        ) : null}
         {profile ? (
           <span className="topbar__meta">
             {displayName} · {ROLE_AR[profile.role]}
