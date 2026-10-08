@@ -9,3 +9,8 @@ export { EmptyState } from './EmptyState';
 export { Tabs, TabPanel } from './Tabs';
 export type { TabDef } from './Tabs';
 export { DraftBanner } from './DraftBanner';
+export { StatTile } from './StatTile';
+export { Icon } from './Icon';
+export type { IconName } from './Icon';
+export { SkeletonList } from './Skeleton';
+export { ErrorState } from './ErrorState';

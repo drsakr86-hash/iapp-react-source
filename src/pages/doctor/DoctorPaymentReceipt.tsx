@@ -15,6 +15,8 @@ import * as patientsSvc from '../../services/patients';
 import * as catalogSvc from '../../services/catalog';
 import * as clinicsSvc from '../../services/clinics';
 import { REPORT_FALLBACK } from '../../config/reportConfig';
+import { whatsappUrl } from '../../utils/whatsapp';
+import { receiptShareMessage } from '../../utils/ledgerView';
 
 export default function DoctorPaymentReceipt() {
   useDocumentTitle('إيصال الدفع');
@@ -23,6 +25,7 @@ export default function DoctorPaymentReceipt() {
   const paymentId = params.paymentId ?? '';
 
   const [data, setData] = useState<ReceiptData | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +47,7 @@ export default function DoctorPaymentReceipt() {
         payment.clinic_id ? clinicsSvc.get(payment.clinic_id) : Promise.resolve(null),
       ]);
 
+      setPhone(patient?.phone ?? null);
       setData({
         payment,
         patientName: patient?.full_name ?? '—',
@@ -90,6 +94,27 @@ export default function DoctorPaymentReceipt() {
           <Button variant="outline">إغلاق</Button>
         </Link>
         <span className="report-preview__bar-spacer" />
+        {data
+          ? (() => {
+              const url = whatsappUrl(
+                phone,
+                receiptShareMessage({
+                  patientName: data.patientName,
+                  clinic: data.clinic?.name_ar,
+                  date: (data.payment.paid_at ?? data.payment.created_at).slice(0, 10),
+                  receiptNo: data.payment.receipt_no,
+                  serviceName: data.serviceName,
+                  amountPaid: data.payment.amount_paid,
+                  currency: data.payment.currency,
+                }),
+              );
+              return url ? (
+                <a className="btn btn--outline" href={url} target="_blank" rel="noopener noreferrer">
+                  💬 إرسال واتساب
+                </a>
+              ) : null;
+            })()
+          : null}
         <Button disabled={!data} onClick={printNow}>
           طباعة / حفظ PDF
         </Button>

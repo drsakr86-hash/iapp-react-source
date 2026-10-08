@@ -32,14 +32,15 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useDoctor } from '../hooks/useDoctor';
 import { ROLE_AR } from '../types/domain';
-import { Button } from '../components/ui';
+import { Button, Icon, type IconName } from '../components/ui';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export type Section = 'doctor' | 'secretary' | 'patient' | 'admin' | 'accounting';
 
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  icon: IconName;
   end?: boolean;
   /** Extra path prefixes that should light this tab up (e.g. screens reached from «المزيد»). */
   also?: string[];
@@ -52,14 +53,14 @@ interface NavItem {
  */
 const NAV: Record<Section, NavItem[]> = {
   doctor: [
-    { to: '/doctor', label: 'اليوم', icon: '📅', end: true },
-    { to: '/doctor/appointments', label: 'المواعيد', icon: '🗓️' },
-    { to: '/doctor/patients', label: 'المرضى', icon: '🩺' },
-    { to: '/doctor/payments', label: 'المدفوعات', icon: '💳' },
+    { to: '/doctor', label: 'اليوم', icon: 'calendar', end: true },
+    { to: '/doctor/appointments', label: 'المواعيد', icon: 'calendar-days' },
+    { to: '/doctor/patients', label: 'المرضى', icon: 'users' },
+    { to: '/doctor/payments', label: 'المدفوعات', icon: 'credit-card' },
     {
       to: '/doctor/more',
       label: 'المزيد',
-      icon: '☰',
+      icon: 'menu',
       also: [
         '/doctor/clinics',
         '/doctor/services',
@@ -70,28 +71,28 @@ const NAV: Record<Section, NavItem[]> = {
     },
   ],
   accounting: [
-    { to: '/accounting', label: 'الرئيسية', icon: '📊', end: true },
-    { to: '/accounting/revenue', label: 'تحصيل', icon: '💰' },
-    { to: '/accounting/expenses', label: 'مصروفات', icon: '🧾' },
-    { to: '/accounting/transfers', label: 'تحويلات', icon: '🔁' },
-    { to: '/accounting/refunds', label: 'مرتجعات', icon: '↩️' },
-    { to: '/accounting/closing', label: 'الإغلاق اليومي', icon: '🔒' },
-    { to: '/accounting/accounts', label: 'الحسابات', icon: '🏦' },
-    { to: '/accounting/reports', label: 'التقارير', icon: '📈' },
-    { to: '/accounting/settings', label: 'الإعدادات', icon: '⚙️' },
+    { to: '/accounting', label: 'الرئيسية', icon: 'bar-chart', end: true },
+    { to: '/accounting/revenue', label: 'تحصيل', icon: 'wallet' },
+    { to: '/accounting/expenses', label: 'مصروفات', icon: 'receipt' },
+    { to: '/accounting/transfers', label: 'تحويلات', icon: 'repeat' },
+    { to: '/accounting/refunds', label: 'مرتجعات', icon: 'undo' },
+    { to: '/accounting/closing', label: 'الإغلاق اليومي', icon: 'lock' },
+    { to: '/accounting/accounts', label: 'الحسابات', icon: 'landmark' },
+    { to: '/accounting/reports', label: 'التقارير', icon: 'trending' },
+    { to: '/accounting/settings', label: 'الإعدادات', icon: 'sliders' },
   ],
-  secretary: [{ to: '/secretary', label: 'مواعيد اليوم', icon: '📅', end: true }],
+  secretary: [{ to: '/secretary', label: 'مواعيد اليوم', icon: 'calendar', end: true }],
   patient: [
-    { to: '/patient', label: 'اليوم', icon: '📅', end: true },
-    { to: '/patient/appointments', label: 'مواعيدي', icon: '🗓️' },
-    { to: '/patient/prescriptions', label: 'روشتاتي', icon: '💊' },
-    { to: '/patient/exams', label: 'فحوصاتي', icon: '🔬' },
+    { to: '/patient', label: 'اليوم', icon: 'calendar', end: true },
+    { to: '/patient/appointments', label: 'مواعيدي', icon: 'calendar-days' },
+    { to: '/patient/prescriptions', label: 'روشتاتي', icon: 'pill' },
+    { to: '/patient/exams', label: 'فحوصاتي', icon: 'flask' },
   ],
   admin: [
-    { to: '/admin', label: 'النظام', icon: '⚙️', end: true },
-    { to: '/admin/payments', label: 'المدفوعات', icon: '💳' },
-    { to: '/admin/clinics', label: 'العيادات', icon: '🏥' },
-    { to: '/admin/services', label: 'الخدمات', icon: '🧾' },
+    { to: '/admin', label: 'النظام', icon: 'shield', end: true },
+    { to: '/admin/payments', label: 'المدفوعات', icon: 'credit-card' },
+    { to: '/admin/clinics', label: 'العيادات', icon: 'building' },
+    { to: '/admin/services', label: 'الخدمات', icon: 'receipt' },
   ],
 };
 
@@ -133,6 +134,7 @@ export function AppShell({ section }: { section: Section }) {
             {displayName} · {ROLE_AR[profile.role]}
           </span>
         ) : null}
+        <ThemeToggle />
         <Button variant="outline" onClick={() => void signOut()} style={{ padding: '6px 12px' }}>
           خروج
         </Button>
@@ -154,14 +156,14 @@ export function AppShell({ section }: { section: Section }) {
               }
             >
               <span className="bottomnav__icon" aria-hidden="true">
-                {item.icon}
+                <Icon name={item.icon} />
               </span>
               <span>{item.label}</span>
             </Link>
           ) : (
             <NavLink key={item.to} to={item.to} end={item.end} className="bottomnav__item">
               <span className="bottomnav__icon" aria-hidden="true">
-                {item.icon}
+                <Icon name={item.icon} />
               </span>
               <span>{item.label}</span>
             </NavLink>
@@ -191,7 +193,7 @@ function AccountingSubNav() {
       {NAV.accounting.map((item) => (
         <NavLink key={item.to} to={item.to} end={item.end} className="subnav__item">
           <span className="subnav__icon" aria-hidden="true">
-            {item.icon}
+            <Icon name={item.icon} size={18} />
           </span>
           <span>{item.label}</span>
         </NavLink>

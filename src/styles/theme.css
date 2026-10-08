@@ -38,3 +38,23 @@
 
   --font: 'Segoe UI', Tahoma, Arial, sans-serif;
 }
+
+
+/* Light theme — opt-in via the toggle in the top bar (data-theme="light" on <html>).
+   Accent/teal/gold are darkened so text in those colours keeps >= 4.5:1 on white. */
+:root[data-theme='light'] {
+  --bg: #F4F7FB;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
+  --border: #D5DEEA;
+  --accent: #0A7FB0;
+  --teal: #00796B;
+  --gold: #A5620F;
+  --text: #0E1B2E;
+  --muted: #51657E;
+  --danger: #C62645;
+  --success: #0B7A5A;
+  --purple: #6D4FD6;
+  color-scheme: light;
+}
+:root { color-scheme: dark; }

@@ -15,6 +15,7 @@ import {
   type PromptOptions,
 } from './confirm-context';
 import { Button } from '../components/ui/Button';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 type Pending =
   | { kind: 'confirm'; opts: ConfirmOptions; resolve: (v: boolean) => void }
@@ -65,6 +66,8 @@ function Dialog({ pending, onDone }: { pending: Pending; onDone: () => void }) {
   const [text, setText] = useState('');
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(boxRef);
 
   const isPrompt = pending.kind === 'prompt';
   const minLength = pending.kind === 'prompt' ? (pending.opts.minLength ?? 1) : 0;
@@ -107,6 +110,7 @@ function Dialog({ pending, onDone }: { pending: Pending; onDone: () => void }) {
   return (
     <div className="modal confirm" onClick={cancel}>
       <div
+        ref={boxRef}
         className="modal__box confirm__box"
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"

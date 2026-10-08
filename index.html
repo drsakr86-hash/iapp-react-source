@@ -12,6 +12,15 @@
     <meta name="apple-mobile-web-app-title" content="I App" />
     <meta name="theme-color" content="#0A0F1E" />
     <meta name="robots" content="noindex" />
+    <script>
+      /* Apply the saved theme before first paint (no dark→light flash). */
+      try {
+        if (localStorage.getItem('iapp:theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F4F7FB');
+        }
+      } catch (e) {}
+    </script>
     <title>I App</title>
   </head>
   <body>

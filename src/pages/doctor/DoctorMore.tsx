@@ -3,15 +3,15 @@
  * stays at five tabs (a phone fits five comfortably, nine does not).
  */
 import { Link } from 'react-router-dom';
-import { Card } from '../../components/ui';
+import { Card, Icon, type IconName } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
-const ITEMS: { to: string; icon: string; label: string; hint: string }[] = [
-  { to: '/accounting', icon: '📊', label: 'المحاسبة', hint: 'الإيرادات والمصروفات والإغلاق اليومي' },
-  { to: '/doctor/clinics', icon: '🏥', label: 'العيادات', hint: 'بيانات الفروع والعناوين' },
-  { to: '/doctor/services', icon: '🧾', label: 'الخدمات', hint: 'قائمة الخدمات والأسعار' },
-  { to: '/doctor/lists', icon: '⚙️', label: 'القوائم', hint: 'خيارات القوائم المنسدلة في النماذج' },
-  { to: '/doctor/profile', icon: '👤', label: 'ملفي', hint: 'الاسم والبيانات الشخصية' },
+const ITEMS: { to: string; icon: IconName; label: string; hint: string }[] = [
+  { to: '/accounting', icon: 'bar-chart', label: 'المحاسبة', hint: 'الإيرادات والمصروفات والإغلاق اليومي' },
+  { to: '/doctor/clinics', icon: 'building', label: 'العيادات', hint: 'بيانات الفروع والعناوين' },
+  { to: '/doctor/services', icon: 'receipt', label: 'الخدمات', hint: 'قائمة الخدمات والأسعار' },
+  { to: '/doctor/lists', icon: 'sliders', label: 'القوائم', hint: 'خيارات القوائم المنسدلة في النماذج' },
+  { to: '/doctor/profile', icon: 'user', label: 'ملفي', hint: 'الاسم والبيانات الشخصية' },
 ];
 
 export default function DoctorMore() {
@@ -23,7 +23,7 @@ export default function DoctorMore() {
           {ITEMS.map((i) => (
             <Link key={i.to} to={i.to} className="morelist__item">
               <span className="morelist__icon" aria-hidden="true">
-                {i.icon}
+                <Icon name={i.icon} size={24} />
               </span>
               <span>
                 <div className="morelist__label">{i.label}</div>

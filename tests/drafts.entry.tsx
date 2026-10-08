@@ -8,6 +8,11 @@ import { useDraftState } from '../src/hooks/useDraft';
 import { DraftBanner } from '../src/components/ui/DraftBanner';
 import { TabPanel, Tabs } from '../src/components/ui/Tabs';
 import { PatientBar } from '../src/components/doctor/PatientBar';
+import { Modal } from '../src/components/ui/Modal';
+import { Icon } from '../src/components/ui/Icon';
+import { SkeletonList } from '../src/components/ui/Skeleton';
+import { ErrorState } from '../src/components/ui/ErrorState';
+import { StatTile } from '../src/components/ui/StatTile';
 
 function Probe({ scope }: { scope: string[] }) {
   const d = useDraftState<{ text: string }>(scope, () => ({ text: '' }));
@@ -46,7 +51,45 @@ function TabsDemo({ allergies }: { allergies: string | null }) {
   );
 }
 
+function ModalDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button id="opener" onClick={() => setOpen(true)}>open</button>
+      <button id="outside">outside</button>
+      {open ? (
+        <Modal title="demo" onClose={() => setOpen(false)}>
+          <input id="m-first" />
+          <button id="m-last">last</button>
+        </Modal>
+      ) : null}
+    </div>
+  );
+}
+
+function MiscDemo({ onRetry, onTile }: { onRetry: () => void; onTile: () => void }) {
+  return (
+    <div>
+      <Icon name="calendar" />
+      <SkeletonList rows={2} />
+      <ErrorState message="تعذّر التحميل" onRetry={onRetry} />
+      <StatTile label="في الانتظار" value={3} active onClick={onTile} />
+      <StatTile label="الكل" value={9} />
+    </div>
+  );
+}
+
 (globalThis as unknown as Record<string, unknown>).__iappDrafts = {
+  mountModal(id: string) {
+    const el = document.getElementById(id);
+    if (!el) throw new Error('#' + id + ' missing');
+    createRoot(el).render(<ModalDemo />);
+  },
+  mountMisc(id: string, onRetry: () => void, onTile: () => void) {
+    const el = document.getElementById(id);
+    if (!el) throw new Error('#' + id + ' missing');
+    createRoot(el).render(<MiscDemo onRetry={onRetry} onTile={onTile} />);
+  },
   store,
   mountProbe(id: string, scope: string[]) {
     const el = document.getElementById(id);

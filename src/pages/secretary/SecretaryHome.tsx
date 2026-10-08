@@ -14,7 +14,7 @@
  *      that is a separate, narrower RPC from the doctor/admin ledger).
  * ---------------------------------------------------------------------- */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, EmptyState, Spinner } from '../../components/ui';
+import { Button, Card, EmptyState, ErrorState, SkeletonList } from '../../components/ui';
 import { AppointmentCard } from '../../components/doctor/AppointmentCard';
 import { NewAppointmentForm } from '../../components/appointments/NewAppointmentForm';
 import { CollectFeeModal } from '../../components/secretary/CollectFeeModal';
@@ -144,8 +144,8 @@ export default function SecretaryHome() {
           </div>
         </div>
 
-        {loading ? <Spinner label="جارٍ التحميل…" /> : null}
-        {!loading && error ? <EmptyState icon="⚠️" text={error} /> : null}
+        {loading ? <SkeletonList rows={3} /> : null}
+        {!loading && error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
         {!loading && !error && !list.length ? (
           <EmptyState icon="📋" text="لا توجد مواعيد في هذا اليوم." />
         ) : null}
