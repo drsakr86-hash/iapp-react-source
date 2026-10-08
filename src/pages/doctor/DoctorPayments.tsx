@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button, Card, EmptyState, Spinner } from '../../components/ui';
+import { Button, Card, EmptyState, ErrorState, SkeletonList } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { useToast } from '../../hooks/useToast';
 import * as patientsSvc from '../../services/patients';
@@ -24,6 +24,12 @@ import * as catalogSvc from '../../services/catalog';
 import * as paymentsSvc from '../../services/payments';
 import type { PaymentRow, PaymentMethod } from '../../services/payments';
 import * as M from '../../utils/models';
+import {
+  LEDGER_FETCH_LIMIT,
+  filterLedger,
+  ledgerToCsv,
+  paginate,
+} from '../../utils/ledgerView';
 
 const METHOD_AR: Record<PaymentMethod, string> = {
   cash: 'نقدي',
@@ -67,6 +73,8 @@ export default function DoctorPayments() {
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   const [showForm, setShowForm] = useState(Boolean(prefPatientId));
   const [patientSearch, setPatientSearch] = useState('');
@@ -92,6 +100,7 @@ export default function DoctorPayments() {
     setLoading(true);
     setError(null);
     try {
+      setPage(1);
       setPayments(
         await paymentsSvc.listByFilter({
           clinicId: clinicId || null,
@@ -174,6 +183,30 @@ export default function DoctorPayments() {
     }
     return { collected, outstanding, refunded, byMethod, count: payments.length };
   }, [payments]);
+
+  const filtered = useMemo(
+    () => filterLedger(payments, query, (id) => patientNames[id]),
+    [payments, query, patientNames],
+  );
+  const paged = useMemo(() => paginate(filtered, page), [filtered, page]);
+
+  function exportCsv() {
+    const csv = ledgerToCsv(filtered, {
+      patientName: (id) => patientNames[id],
+      serviceName: (id) => services.find((s) => s.id === id)?.name_ar,
+      methodAr: (m) => (m ? (METHOD_AR[m as PaymentMethod] ?? m) : ''),
+      statusAr: (st) => STATUS_AR[st] ?? st,
+      dateLabel: (iso) => (iso ? iso.slice(0, 10) : ''),
+    });
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments_${dateFrom || 'all'}_${dateTo || 'all'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   async function submitPayment() {
     if (saving) return;
@@ -349,12 +382,37 @@ export default function DoctorPayments() {
         </Card>
       ) : null}
 
-      {loading ? <Spinner label="جارٍ التحميل…" /> : null}
-      {!loading && error ? <EmptyState icon="⚠️" text={error} /> : null}
+      {loading ? <SkeletonList rows={4} /> : null}
+      {!loading && error ? <ErrorState message={error} onRetry={() => void loadPayments()} /> : null}
 
       {!loading && !error ? (
-        <Card title="سجل المدفوعات">
+        <Card title={query ? `سجل المدفوعات (${filtered.length} من ${payments.length})` : `سجل المدفوعات (${payments.length})`}>
+          {payments.length >= LEDGER_FETCH_LIMIT ? (
+            <p className="alert" role="status">
+              يعرض النظام آخر {LEDGER_FETCH_LIMIT} عملية فقط في هذه الفترة، وقد توجد عمليات أقدم لا تظهر هنا
+              (والملخص أعلاه محسوب منها فقط). ضيّق الفترة أو العيادة لرؤية الباقي.
+            </p>
+          ) : null}
           {payments.length ? (
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBlockEnd: 10, alignItems: 'center' }}>
+              <input
+                type="search"
+                style={{ flex: '1 1 200px' }}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="🔍 ابحث باسم المريض أو رقم الإيصال أو الملاحظات"
+                aria-label="بحث في سجل المدفوعات"
+              />
+              <Button variant="outline" disabled={!filtered.length} onClick={exportCsv}>
+                ⬇️ تصدير Excel (CSV)
+              </Button>
+            </div>
+          ) : null}
+          {payments.length && !filtered.length ? <EmptyState icon="🔍" text="لا توجد نتائج مطابقة." /> : null}
+          {filtered.length ? (
             <div style={{ overflowX: 'auto' }}>
               <table className="medical-report__table" style={{ width: '100%' }}>
                 <thead>
@@ -371,7 +429,7 @@ export default function DoctorPayments() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((p) => (
+                  {paged.items.map((p) => (
                     <tr key={p.id}>
                       <td>{p.paid_at ? M.fmtDay(p.paid_at.slice(0, 10)) : '—'}</td>
                       <td>{patientNames[p.patient_id] ?? p.patient_id}</td>
@@ -391,9 +449,21 @@ export default function DoctorPayments() {
                 </tbody>
               </table>
             </div>
-          ) : (
-            <EmptyState icon="💳" text="لا توجد مدفوعات في هذه الفترة" />
-          )}
+          ) : null}
+          {paged.pages > 1 ? (
+            <div className="row" style={{ justifyContent: 'center', gap: 8, marginBlockStart: 10, alignItems: 'center' }}>
+              <Button variant="outline" disabled={paged.page <= 1} onClick={() => setPage(paged.page - 1)}>
+                السابق
+              </Button>
+              <span className="muted">
+                صفحة {paged.page} من {paged.pages}
+              </span>
+              <Button variant="outline" disabled={paged.page >= paged.pages} onClick={() => setPage(paged.page + 1)}>
+                التالي
+              </Button>
+            </div>
+          ) : null}
+          {!payments.length ? <EmptyState icon="💳" text="لا توجد مدفوعات في هذه الفترة" /> : null}
         </Card>
       ) : null}
     </div>

@@ -17,7 +17,7 @@ const ok = (name, cond, detail) => (cond ? pass++ : failures.push({ name, detail
 const eq = (name, a, b) => ok(name, JSON.stringify(a) === JSON.stringify(b), `expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
 const h = (t) => console.log('\x1b[1m' + t + '\x1b[0m');
 
-const dom = new JSDOM('<!doctype html><html><body><div id="p1"></div><div id="p2"></div><div id="p3"></div><div id="t1"></div><div id="t2"></div></body></html>', { runScripts: 'dangerously', url: 'http://localhost/' });
+const dom = new JSDOM('<!doctype html><html><body><div id="p1"></div><div id="p2"></div><div id="p3"></div><div id="t1"></div><div id="t2"></div><div id="m1"></div><div id="x1"></div></body></html>', { runScripts: 'dangerously', url: 'http://localhost/' });
 dom.window.eval(bundle);
 const api = dom.window.__iappDrafts;
 const { store } = api;
@@ -190,6 +190,56 @@ h('8. التبويبات وشريط المريض');
   eq('no allergy text → no alert (absence is not "no allergies")', doc.querySelector('#t2 .patientbar__alert'), null);
   api.mountTabs('t2', '   ');
 }
+
+
+h('9. محاصرة التركيز في النوافذ (focus trap)');
+{
+  api.mountModal('m1');
+  await sleep(50);
+  const opener = doc.getElementById('opener');
+  opener.focus();
+  opener.click();
+  await sleep(100);
+  const first = doc.getElementById('m-first');
+  const last = doc.getElementById('m-last');
+  const closeX = doc.querySelector('#m1 .modal__x');
+  ok('focus moves into the dialog on open', doc.querySelector('#m1 .modal__box').contains(doc.activeElement), doc.activeElement && doc.activeElement.outerHTML);
+  const tab = (shift = false) => doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true, cancelable: true }));
+  // order inside the dialog: close ✕, input, last
+  closeX.focus();
+  last.focus();
+  tab(false);
+  ok('Tab from the last element wraps to the first', doc.activeElement === closeX);
+  tab(true);
+  ok('Shift+Tab from the first wraps to the last', doc.activeElement === last);
+  doc.getElementById('outside').focus();
+  tab(false);
+  ok('if focus escaped, Tab pulls it back inside', doc.querySelector('#m1 .modal__box').contains(doc.activeElement));
+  doc.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await sleep(100);
+  eq('Escape closes', doc.querySelector('#m1 .modal'), null);
+  ok('focus returns to the opener', doc.activeElement === opener);
+}
+
+h('10. مكونات الواجهة الجديدة');
+{
+  let retried = 0, tiled = 0;
+  api.mountMisc('x1', () => retried++, () => tiled++);
+  await sleep(100);
+  const svg = doc.querySelector('#x1 svg');
+  ok('icon renders an svg with paths', svg && svg.querySelectorAll('rect,path').length > 0 && svg.getAttribute('aria-hidden') === 'true');
+  eq('skeleton rows', doc.querySelectorAll('#x1 .skeleton').length, 2);
+  ok('skeleton is announced as status', doc.querySelector('#x1 [role=status]'));
+  ok('error state has alert role and message', doc.querySelector('#x1 [role=alert]').textContent.includes('تعذّر التحميل'));
+  Array.from(doc.querySelectorAll('#x1 .errorstate button'))[0].click();
+  eq('retry button calls back', retried, 1);
+  const tiles = doc.querySelectorAll('#x1 .stat');
+  eq('clickable tile is a button with aria-pressed', [tiles[0].tagName, tiles[0].getAttribute('aria-pressed')], ['BUTTON', 'true']);
+  eq('plain tile is not a button', tiles[1].tagName, 'DIV');
+  tiles[0].click();
+  eq('tile click calls back', tiled, 1);
+}
+
 
 console.log();
 if (failures.length) {

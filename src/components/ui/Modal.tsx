@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export function Modal({
   title,
@@ -11,6 +12,9 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(boxRef);
+
   // Escape closes. A modal that traps a doctor mid-clinic is worse than none.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -23,6 +27,7 @@ export function Modal({
   return (
     <div className="modal" onClick={onClose}>
       <div
+        ref={boxRef}
         className={'modal__box' + (wide ? ' modal__box--wide' : '')}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

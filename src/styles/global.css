@@ -706,3 +706,52 @@ a { color: var(--accent); text-decoration: none; }
   border-radius: var(--radius-sm);
   font-size: var(--fs-sm);
 }
+
+/* StatTile */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--gap-sm); }
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--gap-sm) var(--gap-xs);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  font: inherit;
+}
+.stat--btn { cursor: pointer; }
+.stat--btn:hover { border-color: var(--accent); }
+.stat--btn[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+.stat--btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stat__value { font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat__label { font-size: var(--fs-xs); color: var(--muted); }
+
+.iconbtn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.iconbtn:hover { border-color: var(--accent); color: var(--accent); }
+.iconbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root[data-theme='light'] .modal { background: rgba(14, 27, 46, 0.45); }
+:root[data-theme='light'] .toast { box-shadow: 0 6px 24px rgba(14, 27, 46, .18); }
+
+/* Skeleton + error state */
+.skeleton-list { display: flex; flex-direction: column; gap: var(--gap-sm); }
+.skeleton { display: flex; flex-direction: column; gap: 8px; padding: var(--gap); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); }
+.skeleton__bar { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 25%, color-mix(in srgb, var(--border) 55%, var(--card)) 50%, var(--border) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.skeleton__bar--short { width: 28%; }
+.skeleton__bar--mid { width: 62%; }
+@keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton__bar { animation: none; } }
+.errorstate { display: flex; flex-direction: column; align-items: center; gap: var(--gap-sm); padding: var(--gap-lg) var(--gap); text-align: center; }
+.errorstate__icon { font-size: 28px; }
+.errorstate__msg { margin: 0; color: var(--danger); }

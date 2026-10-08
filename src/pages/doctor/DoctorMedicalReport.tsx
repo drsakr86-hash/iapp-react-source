@@ -30,7 +30,7 @@
  * info rather than silently dropping it.
  * ---------------------------------------------------------------------- */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, EmptyState, Spinner } from '../../components/ui';
@@ -46,6 +46,8 @@ import * as imagingSvc from '../../services/imaging';
 import * as clinicsSvc from '../../services/clinics';
 import * as doctorsSvc from '../../services/doctors';
 import { REPORT_FALLBACK } from '../../config/reportConfig';
+import { buildShareMessage } from '../../utils/shareText';
+import { whatsappUrl } from '../../utils/whatsapp';
 import { RL, label, type ReportLang, type ReportRecipient } from '../../i18n/report';
 import type {
   DrugsReportItem,
@@ -69,6 +71,9 @@ export default function DoctorMedicalReport() {
   const [docType, setDocType] = useState<ReportDocType>(
     initialDoc && ['complete','examination','glasses','medication','investigation_request','imaging_report','followup'].includes(initialDoc) ? initialDoc : 'complete',
   );
+  /* MED-2: a slow response for a report the doctor already navigated away
+     from must not overwrite the one now on screen. */
+  const loadSeq = useRef(0);
   const [lang, setLang] = useState<ReportLang>('ar');
   const [recipient, setRecipient] = useState<ReportRecipient>('patient');
 
@@ -78,6 +83,8 @@ export default function DoctorMedicalReport() {
       setLoading(false);
       return;
     }
+    const seq = ++loadSeq.current;
+    const stale = () => seq !== loadSeq.current;
     setLoading(true);
     setError(null);
     try {
@@ -163,6 +170,7 @@ export default function DoctorMedicalReport() {
             titleAr: signedInDoctor?.title_ar ?? null,
           };
 
+      if (stale()) return;
       setData({
         patient,
         visit,
@@ -178,9 +186,9 @@ export default function DoctorMedicalReport() {
         generatedAt: new Date().toISOString(),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'تعذّر تحميل التقرير');
+      if (!stale()) setError(e instanceof Error ? e.message : 'تعذّر تحميل التقرير');
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
   }, [patientId, visitId, signedInDoctor]);
 
@@ -300,6 +308,18 @@ export default function DoctorMedicalReport() {
                       <Button variant="outline" onClick={() => printDoc(doc.type)}>
                         طباعة
                       </Button>
+                      {(() => {
+                        /* WhatsApp goes to the patient's own number on file; the
+                           doctor reads the text and presses send. Shown only for
+                           documents that have a text form and a valid mobile. */
+                        const text = buildShareMessage(doc.type, data);
+                        const url = text ? whatsappUrl(data.patient.phone, text) : null;
+                        return url ? (
+                          <a className="btn btn--outline" href={url} target="_blank" rel="noopener noreferrer">
+                            💬 واتساب
+                          </a>
+                        ) : null;
+                      })()}
                     </span>
                   </div>
                 ))}

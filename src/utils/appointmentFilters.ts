@@ -85,3 +85,20 @@ export function orderForReception<T extends Pick<BoardRow, 'status' | 'scheduled
       String(a.scheduled_time ?? '99:99').localeCompare(String(b.scheduled_time ?? '99:99')),
   );
 }
+
+/**
+ * Who should be called into the room next: among people who have arrived
+ * (ARRIVED / WAITING), the one who has waited longest; ties (or unknown wait)
+ * fall back to the earlier scheduled time. Returns null when nobody is waiting.
+ */
+export function pickNextInQueue<T extends Pick<BoardRow, 'status' | 'scheduled_time' | 'wait_minutes'>>(
+  rows: T[],
+): T | null {
+  const queued = rows.filter((r) => GROUPS.waiting.includes(r.status ?? ''));
+  if (!queued.length) return null;
+  return [...queued].sort(
+    (a, b) =>
+      (b.wait_minutes ?? -1) - (a.wait_minutes ?? -1) ||
+      String(a.scheduled_time ?? '99:99').localeCompare(String(b.scheduled_time ?? '99:99')),
+  )[0];
+}
