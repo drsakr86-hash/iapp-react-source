@@ -620,3 +620,27 @@ a { color: var(--accent); text-decoration: none; }
   margin-block-start: var(--gap);
 }
 .confirm__actions .btn { flex: 1 1 0; }
+
+/* «المزيد» menu page */
+.morelist { display: grid; gap: var(--gap-sm); grid-template-columns: 1fr; }
+@media (min-width: 560px) { .morelist { grid-template-columns: 1fr 1fr; } }
+.morelist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: var(--gap);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  text-decoration: none;
+}
+.morelist__item:hover { border-color: var(--accent); }
+.morelist__icon { font-size: 24px; line-height: 1; }
+.morelist__label { font-weight: 600; }
+.morelist__hint { font-size: var(--fs-xs); color: var(--muted); margin-block-start: 2px; }
+
+/* Reception: filter chips + search */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters .chip[aria-pressed='true'] { background: var(--accent); color: #04121f; border-color: var(--accent); }
+.filters__count { opacity: 0.75; margin-inline-start: 4px; }

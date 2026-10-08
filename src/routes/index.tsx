@@ -27,6 +27,7 @@ const DoctorPatientRecord = lazy(() => import('../pages/doctor/DoctorPatientReco
 const DoctorMedicalReport = lazy(() => import('../pages/doctor/DoctorMedicalReport'));
 const DoctorPayments = lazy(() => import('../pages/doctor/DoctorPayments'));
 const DoctorPaymentReceipt = lazy(() => import('../pages/doctor/DoctorPaymentReceipt'));
+const DoctorMore = lazy(() => import('../pages/doctor/DoctorMore'));
 const DoctorProfile = lazy(() => import('../pages/doctor/DoctorProfile'));
 const SecretaryHome = lazy(() => import('../pages/secretary/SecretaryHome'));
 const PatientHome = lazy(() => import('../pages/patient/PatientHome'));
@@ -78,6 +79,7 @@ export function AppRoutes() {
               path="patients/:patientId/report/:visitId"
               element={<DoctorMedicalReport />}
             />
+            <Route path="more" element={<DoctorMore />} />
             <Route path="profile" element={<DoctorProfile />} />
             <Route path="clinics" element={<AdminClinics />} />
             <Route path="services" element={<AdminServices />} />

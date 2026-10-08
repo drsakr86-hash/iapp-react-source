@@ -16,6 +16,8 @@ import type { AppointmentAction, BoardRow } from '../../services/appointments';
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { Tag } from '../ui';
+import { fmtDay } from '../../utils/models';
+import { reminderMessage, whatsappUrl } from '../../utils/whatsapp';
 
 export function AppointmentCard({
   appointment,
@@ -46,6 +48,26 @@ export function AppointmentCard({
 
   const label = appointments.statusLabel(appointment.status ?? 'REQUESTED');
   const name = appointment.display_name || 'بدون اسم';
+
+  /* Reminder only for appointments that are still ahead of us, and only when
+     the number is a valid mobile (whatsappUrl returns null otherwise — we
+     never guess a number). Opens WhatsApp with the text pre-filled; the
+     secretary still presses send. */
+  const reminderUrl =
+    appointment.scheduled_date &&
+    appointment.scheduled_time &&
+    ['REQUESTED', 'PENDING', 'CONFIRMED'].includes(appointment.status ?? '')
+      ? whatsappUrl(
+          appointment.display_phone,
+          reminderMessage({
+            name: appointment.display_name,
+            clinic: appointment.clinic_name,
+            doctor: appointment.doctor_short || appointment.doctor_name,
+            dayLabel: fmtDay(appointment.scheduled_date),
+            time: appointment.scheduled_time.slice(0, 5),
+          }),
+        )
+      : null;
 
   async function run(action: AppointmentAction) {
     let arg: string | undefined;
@@ -121,6 +143,14 @@ export function AppointmentCard({
           </button>
         )}
       </div>
+
+      {reminderUrl ? (
+        <div className="appt__actions">
+          <a className="chip" href={reminderUrl} target="_blank" rel="noopener noreferrer">
+            💬 تذكير واتساب
+          </a>
+        </div>
+      ) : null}
 
       {actions.length ? (
         <div className="appt__actions">
