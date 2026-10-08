@@ -15,6 +15,8 @@
  * ---------------------------------------------------------------------- */
 
 import { useEffect, useState } from 'react';
+import { useDraftState } from '../../hooks/useDraft';
+import { DraftBanner } from '../ui/DraftBanner';
 import * as visitsSvc from '../../services/visits';
 import * as appointmentsSvc from '../../services/appointments';
 import type { BoardRow } from '../../services/appointments';
@@ -48,14 +50,26 @@ export function VisitForm({
 
   const [clinics, setClinics] = useState<clinicsSvc.ClinicRow[]>([]);
   const [complaintOptions, setComplaintOptions] = useState<string[]>(M.COMPLAINTS);
-  const [f, setF] = useState({
+  /* New visits keep an unsaved local draft; edits to a saved visit do not
+     (they start from server data, which is already the source of truth). */
+  const draft = useDraftState<{
+    visit_date: string;
+    visit_type: string;
+    clinic_id: string;
+    chief_complaint: string;
+    summary: string;
+    notes: string;
+  }>(isNew ? ['visit', patient.id] : null, () => ({
     visit_date: visit?.visit_date ?? M.today(),
     visit_type: visit?.visit_type ?? 'routine',
     clinic_id: visit?.clinic_id ?? clinicId ?? appointment?.clinic_id ?? patient.primary_clinic_id ?? '',
     chief_complaint: visit?.chief_complaint ?? appointment?.notes ?? '',
     summary: visit?.summary ?? '',
     notes: visit?.notes ?? '',
-  });
+  }));
+  const f = draft.value;
+  const setF = (u: (p: typeof f) => typeof f) => draft.set(u);
+
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -115,6 +129,7 @@ export function VisitForm({
         }
       }
       if (!appointment || extra) toast.success('تم حفظ الزيارة' + extra);
+      draft.clear();
       onSaved(saved);
     } catch (e) {
       setError(M.dbError(e));
@@ -125,6 +140,7 @@ export function VisitForm({
 
   return (
     <Modal title={isNew ? `زيارة جديدة — ${patient.full_name}` : 'تعديل الزيارة'} onClose={onClose}>
+      <DraftBanner restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       {appointment ? (
         <p className="muted" style={{ fontSize: 'var(--fs-xs)' }}>
           مرتبطة بموعد {(appointment.scheduled_time ?? '').slice(0, 5)} — سيُنهى الموعد عند الحفظ.

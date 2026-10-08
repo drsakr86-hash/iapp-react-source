@@ -12,8 +12,9 @@
     "smoke": "vite build --config vite.smoke.config.ts && node tests/smoke.mjs",
     "medical": "vite build --config vite.medical.config.ts && node tests/medical.mjs",
     "accounting-tests": "vite build --config vite.accounting.config.ts && node tests/accounting.mjs",
-    "test": "npm run smoke && npm run medical && npm run accounting-tests && npm run reception",
-    "reception": "vite build --config vite.reception.config.ts && node tests/reception.mjs"
+    "test": "npm run smoke && npm run medical && npm run accounting-tests && npm run reception && npm run drafts",
+    "reception": "vite build --config vite.reception.config.ts && node tests/reception.mjs",
+    "drafts": "vite build --config vite.drafts.config.ts && node tests/drafts.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

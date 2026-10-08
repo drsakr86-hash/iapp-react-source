@@ -11,3 +11,4 @@ tests/dist-medical/
 /src/services/accounting/reports.ts.bak
 /tests/dist-accounting/
 /tests/dist-reception/
+/tests/dist-drafts/

@@ -19,6 +19,8 @@
  * ---------------------------------------------------------------------- */
 
 import { useEffect, useState } from 'react';
+import { useDraftState } from '../../hooks/useDraft';
+import { DraftBanner } from '../ui/DraftBanner';
 import { MedInput, MedText, MedValue } from '../medical/Medical';
 import { Button, Card } from '../ui';
 import { useToast } from '../../hooks/useToast';
@@ -57,11 +59,19 @@ export function MedicationRxForm({
   onSaved,
 }: MedicationRxFormProps) {
   const toast = useToast();
-  const [lines, setLines] = useState<Line[]>([{ ...BLANK }]);
+  /* Unsaved prescription lines + notes survive a reload (local draft). */
+  const draft = useDraftState<{ lines: Line[]; notes: string }>(
+    ['rx-med', patientId, visitId ?? 'none'],
+    () => ({ lines: [{ ...BLANK }], notes: '' }),
+  );
+  const lines = draft.value.lines;
+  const notes = draft.value.notes;
+  const setLines = (u: Line[] | ((p: Line[]) => Line[])) =>
+    draft.set((d) => ({ ...d, lines: typeof u === 'function' ? u(d.lines) : u }));
+  const setNotes = (v: string) => draft.set((d) => ({ ...d, notes: v }));
   const [catalogue, setCatalogue] = useState<rx.MedicationOption[]>([]);
   const [dynamic, setDynamic] = useState<dropdownSvc.DropdownOptionRow[]>([]);
   const [date, setDate] = useState(today());
-  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,8 +122,9 @@ export function MedicationRxForm({
           })),
       });
       toast.success('تم حفظ وصفة الأدوية');
-      setLines([{ ...BLANK }]);
-      setNotes('');
+      /* The card stays on screen for the next prescription: discard() drops
+         the draft AND resets the form, and later edits start a new draft. */
+      draft.discard();
       onSaved?.(row);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'تعذّر حفظ الوصفة';
@@ -126,6 +137,7 @@ export function MedicationRxForm({
 
   return (
     <Card title="وصفة أدوية">
+      <DraftBanner restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       {lines.map((line, i) => (
         <div className="rx-med" key={i}>
           <div className="grid-2">
