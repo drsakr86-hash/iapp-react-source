@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import * as appointments from '../../services/appointments';
 import type { AppointmentAction, BoardRow } from '../../services/appointments';
 import { useToast } from '../../hooks/useToast';
+import { useConfirm } from '../../hooks/useConfirm';
 import { Tag } from '../ui';
 
 export function AppointmentCard({
@@ -28,6 +29,7 @@ export function AppointmentCard({
   showWait?: boolean;
 }) {
   const toast = useToast();
+  const { promptText } = useConfirm();
   const [actions, setActions] = useState<AppointmentAction[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -48,12 +50,15 @@ export function AppointmentCard({
   async function run(action: AppointmentAction) {
     let arg: string | undefined;
     if (action.requiresReason) {
-      const reason = window.prompt(`سبب «${action.label}»؟`);
-      if (!reason || reason.trim().length < 3) {
-        toast.error('السبب مطلوب (3 أحرف على الأقل)');
-        return;
-      }
-      arg = reason.trim();
+      const reason = await promptText({
+        title: action.label,
+        message: `سبب «${action.label}»؟`,
+        placeholder: 'اكتب السبب…',
+        minLength: 3,
+        danger: true,
+      });
+      if (!reason) return;
+      arg = reason;
     }
     setBusy(action.to);
     try {
