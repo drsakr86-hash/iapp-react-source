@@ -30,6 +30,7 @@
  * info rather than silently dropping it.
  * ---------------------------------------------------------------------- */
 
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -316,7 +317,7 @@ export default function DoctorMedicalReport() {
                         const url = text ? whatsappUrl(data.patient.phone, text) : null;
                         return url ? (
                           <a className="btn btn--outline" href={url} target="_blank" rel="noopener noreferrer">
-                            💬 واتساب
+                            <Icon name="message" size={16} /> واتساب
                           </a>
                         ) : null;
                       })()}

@@ -8,6 +8,7 @@
  * empty field is NOT displayed as "no allergies" — absence of a record is not
  * the same as a confirmed negative.
  */
+import { Icon } from '../ui/Icon';
 import { Tag } from '../ui';
 
 export function PatientBar({
@@ -35,11 +36,11 @@ export function PatientBar({
           {age != null ? `${code ? ' · ' : ''}${age} سنة` : ''}
         </span>
         <span className="topbar__spacer" />
-        {visitOpen ? <Tag label="🩺 زيارة مفتوحة" color="var(--accent)" /> : null}
+        {visitOpen ? <Tag label={<><Icon name="stethoscope" size={16} /> زيارة مفتوحة</>} color="var(--accent)" /> : null}
       </div>
       {allergyText ? (
         <div className="patientbar__alert" role="alert">
-          ⚠️ حساسية: {allergyText}
+          <Icon name="alert" size={16} /> حساسية: {allergyText}
         </div>
       ) : null}
       {children}

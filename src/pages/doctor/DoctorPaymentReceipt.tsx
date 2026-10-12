@@ -3,6 +3,7 @@
  * receipt. Read-only: nothing here writes anything.
  * ---------------------------------------------------------------------- */
 
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, EmptyState, Spinner } from '../../components/ui';
@@ -110,7 +111,7 @@ export default function DoctorPaymentReceipt() {
               );
               return url ? (
                 <a className="btn btn--outline" href={url} target="_blank" rel="noopener noreferrer">
-                  💬 إرسال واتساب
+                  <Icon name="message" size={16} /> إرسال واتساب
                 </a>
               ) : null;
             })()

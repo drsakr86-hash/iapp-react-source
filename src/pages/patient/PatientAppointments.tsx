@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Spinner, Tag } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -87,7 +88,7 @@ function AppointmentRow({ a, dim }: { a: portal.MyAppointmentRow; dim?: boolean 
         {a.doctors?.full_name_ar ? ` — د. ${a.doctors.full_name_ar}` : ''}
         {a.appointment_type ? ` — ${a.appointment_type}` : ''}
       </p>
-      {a.notes ? <p className="muted">📝 {a.notes}</p> : null}
+      {a.notes ? <p className="muted"><Icon name="note" size={16} /> {a.notes}</p> : null}
     </div>
   );
 }

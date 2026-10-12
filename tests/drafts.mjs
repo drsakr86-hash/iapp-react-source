@@ -241,6 +241,24 @@ h('10. مكونات الواجهة الجديدة');
 }
 
 
+h('11. الإخفاء والأيقونات (ثوابت على الملفات)');
+{
+  const { readFileSync, readdirSync, statSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const css = readFileSync('src/styles/global.css', 'utf8');
+  ok('[hidden] always wins over display:flex classes', /\[hidden\]\s*\{\s*display:\s*none\s*!important/.test(css));
+  const EMOJI = /[\u{1F300}-\u{1FAFF}\u2600-\u27BF\u2B50\u2705]/u;
+  const walk = (d) => readdirSync(d).flatMap((n) => { const f = join(d, n); return statSync(f).isDirectory() ? walk(f) : [f]; });
+  const offenders = [];
+  for (const f of walk('src/pages').concat(walk('src/components/ui'), walk('src/components/doctor'))) {
+    if (!f.endsWith('.tsx')) continue;
+    readFileSync(f, 'utf8').split('\n').forEach((l, i) => {
+      if (EMOJI.test(l) && !/^\s*(\/?\*|\/\/)/.test(l) && !/EmptyState icon=|^\s*icon="|FROM_EMOJI|'.{1,3}': '/.test(l)) offenders.push(f + ':' + (i + 1));
+    });
+  }
+  eq('no emoji icons left in screens', offenders, []);
+}
+
 console.log();
 if (failures.length) {
   console.log('\x1b[31m✗ فشل ' + failures.length + ' من ' + (pass + failures.length) + '\x1b[0m');

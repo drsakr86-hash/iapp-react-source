@@ -1,3 +1,4 @@
+import { Icon } from './Icon';
 import { Button } from './Button';
 
 /** A failed load, with a way out: the message plus a retry button. */
@@ -5,7 +6,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   return (
     <div className="errorstate" role="alert">
       <div className="errorstate__icon" aria-hidden="true">
-        ⚠️
+        <Icon name="alert" size={40} />
       </div>
       <p className="errorstate__msg">{message}</p>
       {onRetry ? (

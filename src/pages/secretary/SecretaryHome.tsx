@@ -13,6 +13,7 @@
  *      iapp.record_consultation_payment only (see its own header for why
  *      that is a separate, narrower RPC from the doctor/admin ledger).
  * ---------------------------------------------------------------------- */
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, EmptyState, ErrorState, SkeletonList } from '../../components/ui';
 import { AppointmentCard } from '../../components/doctor/AppointmentCard';
@@ -125,7 +126,7 @@ export default function SecretaryHome() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="🔍 ابحث بالاسم أو رقم التليفون أو كود المريض"
+            placeholder="ابحث بالاسم أو رقم التليفون أو كود المريض"
             aria-label="بحث في مواعيد اليوم"
           />
           <div className="filters" role="group" aria-label="تصفية حسب الحالة">
@@ -159,10 +160,10 @@ export default function SecretaryHome() {
                 <AppointmentCard appointment={a} role="secretary" onChanged={() => void load(true)} />
                 {a.patient_id ? (
                   a.consultation_fee_paid_at ? (
-                    <span className="chip chip--muted">✅ تم تحصيل رسم الكشف</span>
+                    <span className="chip chip--muted"><Icon name="check-circle" size={16} /> تم تحصيل رسم الكشف</span>
                   ) : (
                     <Button variant="outline" onClick={() => setCollecting(a)}>
-                      💳 تحصيل رسم الكشف
+                      <Icon name="credit-card" size={16} /> تحصيل رسم الكشف
                     </Button>
                   )
                 ) : null}

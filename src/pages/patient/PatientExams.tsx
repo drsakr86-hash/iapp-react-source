@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import { useEffect, useState } from 'react';
 import { Card, Spinner } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -83,7 +84,7 @@ function ExamCard({ ex }: { ex: portal.MyExaminationRow }) {
 
       {ex.follow_ups.length > 0 ? (
         <p className="muted" style={{ marginTop: 6 }}>
-          📅 موعد المتابعة: {M.fmtDay(ex.follow_ups[0].due_date)}
+          <Icon name="calendar" size={16} /> موعد المتابعة: {M.fmtDay(ex.follow_ups[0].due_date)}
           {ex.follow_ups[0].reason ? ` — ${ex.follow_ups[0].reason}` : ''}
         </p>
       ) : null}
