@@ -15,6 +15,7 @@
 import { supabase } from './supabase';
 import { svcError } from './_err';
 import * as M from '../utils/models';
+import type { DueFollowUp } from '../utils/followUps';
 import type {
   Diagnosis,
   ExamFinding,
@@ -385,6 +386,66 @@ export const followUps = {
     const r = await supabase.from('follow_ups').insert(payload).select('*').single();
     if (r.error) throw svcError(r.error, 'حفظ المتابعة', CLINICAL_ERRORS);
     return r.data as unknown as FollowUp;
+  },
+
+  /**
+   * Open follow-ups (pending / notified) due on or before `untilDate`, with
+   * the patient's name and phone joined in. Doctor-only by RLS
+   * (follow_ups_clinical_all) — a secretary gets an empty list, not an error.
+   */
+  async listDue(untilDate: string, limit = 100): Promise<DueFollowUp[]> {
+    const r = await supabase
+      .from('follow_ups')
+      .select('id, patient_id, due_date, reason, status, notified_at')
+      .in('status', ['pending', 'notified'])
+      .is('deleted_at', null)
+      .lte('due_date', untilDate)
+      .order('due_date', { ascending: true })
+      .limit(limit);
+    if (r.error) throw svcError(r.error, 'قراءة المتابعات', CLINICAL_ERRORS);
+    const fu = (r.data ?? []) as unknown as Array<Omit<DueFollowUp, 'name' | 'phone' | 'code'>>;
+    if (!fu.length) return [];
+
+    const ids = [...new Set(fu.map((x) => x.patient_id))];
+    const p = await supabase
+      .schema('iapp')
+      .from('patients')
+      .select('id, full_name, phone, patient_code')
+      .in('id', ids)
+      .is('deleted_at', null);
+    if (p.error) throw svcError(p.error, 'قراءة بيانات المرضى', CLINICAL_ERRORS);
+    const byId = new Map(
+      ((p.data ?? []) as Array<{ id: string; full_name: string; phone: string | null; patient_code: string | null }>).map(
+        (x) => [x.id, x],
+      ),
+    );
+    // A follow-up whose patient was deleted is dropped, not shown nameless.
+    return fu
+      .filter((x) => byId.has(x.patient_id))
+      .map((x) => {
+        const pt = byId.get(x.patient_id)!;
+        return { ...x, name: pt.full_name, phone: pt.phone, code: pt.patient_code };
+      });
+  },
+
+  /** Records that the patient was reminded (status → notified, notified_at → now). */
+  async markNotified(id: string): Promise<void> {
+    const r = await supabase
+      .from('follow_ups')
+      .update({ status: 'notified', notified_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null);
+    if (r.error) throw svcError(r.error, 'تسجيل التذكير', CLINICAL_ERRORS);
+  },
+
+  /** The patient has no further need for this follow-up (done elsewhere / no longer wanted). */
+  async cancel(id: string): Promise<void> {
+    const r = await supabase
+      .from('follow_ups')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+      .is('deleted_at', null);
+    if (r.error) throw svcError(r.error, 'إلغاء المتابعة', CLINICAL_ERRORS);
   },
 };
 

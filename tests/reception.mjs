@@ -18,7 +18,7 @@ const eq = (name, a, b) => ok(name, JSON.stringify(a) === JSON.stringify(b), `ex
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { runScripts: 'dangerously', url: 'http://localhost/' });
 dom.window.eval(bundle);
-const { wa, filters, share, ledger, theme } = dom.window.__iappReception;
+const { wa, filters, share, ledger, theme, fu } = dom.window.__iappReception;
 
 const h = (t) => console.log('\x1b[1m' + t + '\x1b[0m');
 
@@ -181,6 +181,31 @@ h('9. الوضع الفاتح');
   eq('light sets data-theme + meta', [d.documentElement.getAttribute('data-theme'), d.querySelector('meta').getAttribute('content')], ['light', '#F4F7FB']);
   theme.applyTheme(d, 'dark');
   eq('dark removes it + meta back', [d.documentElement.getAttribute('data-theme'), d.querySelector('meta').getAttribute('content')], [null, '#0A0F1E']);
+}
+
+h('10. متابعات مستحقة');
+{
+  const T = '2026-10-13';
+  eq('overdue', fu.groupOf('2026-10-12', T), 'overdue');
+  eq('today', fu.groupOf(T, T), 'today');
+  eq('upcoming', fu.groupOf('2026-10-14', T), 'upcoming');
+  eq('month boundary', fu.addDays('2026-10-31', 1), '2026-11-01');
+  eq('year boundary', fu.addDays('2026-12-31', 7), '2027-01-07');
+  eq('label today', fu.dueLabel(T, T), 'اليوم');
+  eq('label tomorrow', fu.dueLabel('2026-10-14', T), 'غدًا');
+  eq('label yesterday', fu.dueLabel('2026-10-12', T), 'أمس');
+  eq('label overdue', fu.dueLabel('2026-10-03', T), 'متأخرة 10 يوم');
+  eq('label upcoming', fu.dueLabel('2026-10-16', T), 'بعد 3 أيام');
+  const mk = (id, d, n, name) => ({ id, patient_id: id, due_date: d, reason: null, status: 'pending', notified_at: n, name, phone: null, code: null });
+  const rows = [mk('c', '2026-10-15', null, 'ج'), mk('a', '2026-10-10', '2026-10-11', 'أ'), mk('b', '2026-10-10', null, 'ب'), mk('d', T, null, 'د')];
+  eq('sort: oldest first, un-contacted before contacted', fu.sortFollowUps(rows).map((r) => r.id), ['b', 'a', 'd', 'c']);
+  eq('input not mutated', rows.map((r) => r.id), ['c', 'a', 'b', 'd']);
+  eq('counts', fu.countByGroup(rows, T), { overdue: 2, today: 1, upcoming: 1 });
+  const m = wa.followUpMessage({ name: 'سارة', doctor: 'د. عبده', dayLabel: 'الخميس 2026-10-15' });
+  ok('follow-up text has name, doctor, day', m.includes('سارة') && m.includes('د. عبده') && m.includes('2026-10-15'), m);
+  ok('follow-up text is clean without optional parts', !/undefined|null/.test(wa.followUpMessage({ dayLabel: 'd' })));
+  ok('follow-up text has no clinical words', !/تشخيص|علاج|دواء|حقن/.test(m));
+  ok('follow-up wa link', wa.whatsappUrl('01012345678', m).startsWith('https://wa.me/201012345678?text='));
 }
 
 console.log();

@@ -9,6 +9,7 @@ import * as appointments from '../../services/appointments';
 import type { BoardRow } from '../../services/appointments';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useToast } from '../../hooks/useToast';
+import { FollowUpReminders } from '../../components/doctor/FollowUpReminders';
 import { today } from '../../utils/medical';
 import {
   QUEUE_FILTERS,
@@ -348,6 +349,7 @@ export default function DoctorHome() {
           );
         })}
       </Card>
+      <FollowUpReminders doctorName={displayName} />
     </div>
   );
 }
