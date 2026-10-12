@@ -20,7 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { Button, Field, Input, Spinner } from '../components/ui';
-import { roleHome } from '../routes/roleHome';
+import { pathAllowedForRole, roleHome } from '../routes/roleHome';
 import * as authSvc from '../services/auth';
 
 type Mode = 'login' | 'signup';
@@ -44,7 +44,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (status === 'ready' && profile) {
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from ?? roleHome(profile.role), { replace: true });
+      /* Honour `from` only if THIS account may open it (a different role may
+         have signed in since the bounce). */
+      const target = from && pathAllowedForRole(from, profile.role) ? from : roleHome(profile.role);
+      navigate(target, { replace: true });
     }
   }, [status, profile, navigate, location.state]);
 

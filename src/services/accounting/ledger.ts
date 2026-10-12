@@ -31,6 +31,8 @@ export async function recordPatientPayment(
     p as unknown as Record<string, unknown>,
     'تحصيل الدفعة',
   );
+  /* An empty result means the server recorded nothing — never report success. */
+  if (!rows.length) throw new Error('تعذّر تسجيل الدفعة — لم يُرجع الخادم إيصالاً');
   return rows[0];
 }
 

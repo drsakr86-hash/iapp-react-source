@@ -110,11 +110,6 @@ export async function signIn(email: string, password: string): Promise<SignInRes
   });
 
   if (error) {
-  console.error('Supabase sign-in error:', {
-    message: error.message,
-    status: error.status,
-    name: error.name,
-  });
   return { ok: false, error: `${error.name ?? 'AuthError'}: ${error.message}` };
 }
 

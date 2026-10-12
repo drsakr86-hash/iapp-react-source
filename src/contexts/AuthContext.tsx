@@ -37,10 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * handled twice.
    */
   const mounted = useRef(true);
+  /** Each resolve() takes a ticket; only the latest one may write state, so a
+   *  slow earlier profile read can never overwrite a newer sign-in/out. */
+  const seq = useRef(0);
 
   const resolve = useCallback(async () => {
+    const ticket = ++seq.current;
     const result = await authService.loadProfile();
-    if (!mounted.current) return;
+    if (!mounted.current || ticket !== seq.current) return;
 
     if (result.profile) {
       setProfile(result.profile);
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = authService.onAuthChange((session) => {
       if (!mounted.current) return;
       if (!session) {
+        seq.current++;
         setProfile(null);
         setProblem(null);
         setStatus('anon');
@@ -100,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authService.signOut();
     /* Unsaved clinical drafts must not outlive the session on a shared PC. */
     clearAllDrafts(browserStorage());
+    seq.current++;
     if (!mounted.current) return;
     setProfile(null);
     setProblem(null);

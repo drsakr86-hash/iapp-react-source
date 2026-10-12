@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Icon } from './ui/Icon';
 import { applyTheme, readTheme, writeTheme, type Theme } from '../utils/theme';
 
 const store = () => {
@@ -25,7 +24,7 @@ export function ThemeToggle() {
         applyTheme(document, next);
       }}
     >
-      <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+      {theme === 'dark' ? '☀️' : '🌙'}
     </button>
   );
 }

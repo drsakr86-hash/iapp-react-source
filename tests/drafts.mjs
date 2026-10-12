@@ -226,16 +226,15 @@ h('10. مكونات الواجهة الجديدة');
   let retried = 0, tiled = 0;
   api.mountMisc('x1', () => retried++, () => tiled++);
   await sleep(100);
-  const svg = doc.querySelector('#x1 svg');
-  ok('icon renders an svg with paths', svg && svg.querySelectorAll('rect,path').length > 0 && svg.getAttribute('aria-hidden') === 'true');
   eq('skeleton rows', doc.querySelectorAll('#x1 .skeleton').length, 2);
   ok('skeleton is announced as status', doc.querySelector('#x1 [role=status]'));
   ok('error state has alert role and message', doc.querySelector('#x1 [role=alert]').textContent.includes('تعذّر التحميل'));
   Array.from(doc.querySelectorAll('#x1 .errorstate button'))[0].click();
   eq('retry button calls back', retried, 1);
-  const tiles = doc.querySelectorAll('#x1 .stat');
+  const tiles = doc.querySelectorAll('#x1 .stat-card');
   eq('clickable tile is a button with aria-pressed', [tiles[0].tagName, tiles[0].getAttribute('aria-pressed')], ['BUTTON', 'true']);
   eq('plain tile is not a button', tiles[1].tagName, 'DIV');
+  eq('tile shows its emoji icon and colour', [tiles[0].querySelector('.stat-card__icon').textContent, tiles[0].style.getPropertyValue('--stat-color')], ['⏳', 'var(--gold)']);
   tiles[0].click();
   eq('tile click calls back', tiled, 1);
 }

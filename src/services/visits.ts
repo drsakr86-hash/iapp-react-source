@@ -32,7 +32,12 @@ export async function listByPatient(pid: string, limit = 30): Promise<Visit[]> {
 }
 
 export async function get(id: string): Promise<Visit | null> {
-  const r = await supabase.from('visits').select('*').eq('id', id).maybeSingle();
+  const r = await supabase
+    .from('visits')
+    .select('*')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .maybeSingle();
   if (r.error) throw svcError(r.error, 'قراءة الزيارة', VISIT_ERRORS);
   return (r.data as unknown as Visit) ?? null;
 }

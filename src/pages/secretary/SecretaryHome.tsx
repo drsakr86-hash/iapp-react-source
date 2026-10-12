@@ -64,7 +64,8 @@ export default function SecretaryHome() {
         setError(null);
       }
       try {
-        setList(await appointments.byDate(date));
+        const rows = await appointments.byDate(date);
+        setList(rows.filter((r) => r.status !== 'CANCELLED' && r.status !== 'NO_SHOW'));
         if (quiet) setError(null);
       } catch (e) {
         if (!quiet) setError(e instanceof Error ? e.message : 'تعذّر تحميل المواعيد');

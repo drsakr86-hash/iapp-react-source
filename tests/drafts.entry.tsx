@@ -9,10 +9,9 @@ import { DraftBanner } from '../src/components/ui/DraftBanner';
 import { TabPanel, Tabs } from '../src/components/ui/Tabs';
 import { PatientBar } from '../src/components/doctor/PatientBar';
 import { Modal } from '../src/components/ui/Modal';
-import { Icon } from '../src/components/ui/Icon';
 import { SkeletonList } from '../src/components/ui/Skeleton';
 import { ErrorState } from '../src/components/ui/ErrorState';
-import { StatTile } from '../src/components/ui/StatTile';
+import { StatCard } from '../src/components/ui/StatCard';
 
 function Probe({ scope }: { scope: string[] }) {
   const d = useDraftState<{ text: string }>(scope, () => ({ text: '' }));
@@ -70,11 +69,10 @@ function ModalDemo() {
 function MiscDemo({ onRetry, onTile }: { onRetry: () => void; onTile: () => void }) {
   return (
     <div>
-      <Icon name="calendar" />
       <SkeletonList rows={2} />
       <ErrorState message="تعذّر التحميل" onRetry={onRetry} />
-      <StatTile label="في الانتظار" value={3} active onClick={onTile} />
-      <StatTile label="الكل" value={9} />
+      <StatCard icon="⏳" color="var(--gold)" label="في الانتظار" value={3} active onClick={onTile} />
+      <StatCard label="الكل" value={9} />
     </div>
   );
 }

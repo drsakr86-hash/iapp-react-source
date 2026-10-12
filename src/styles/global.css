@@ -99,7 +99,12 @@ a { color: var(--accent); text-decoration: none; }
   padding: 0;
 }
 .bottomnav__item[aria-current='page'] { color: var(--accent); }
-.bottomnav__icon { font-size: 18px; line-height: 1; }
+.bottomnav__icon { font-size: 18px; line-height: 1; transition: transform .15s, filter .15s; }
+/* The active tab's icon grows and glows (I App Lite). */
+.bottomnav__item[aria-current='page'] .bottomnav__icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 6px var(--accent));
+}
 
 /* ── accounting secondary nav — module-inside-doctor-app pattern ──────
    Plain, unpositioned block-level content, exactly like .topbar. When
@@ -134,7 +139,7 @@ a { color: var(--accent); text-decoration: none; }
 
 /* ── surfaces ──────────────────────────────────────────── */
 .card {
-  background: var(--card);
+  background: linear-gradient(135deg, var(--card), var(--card-2));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--gap);
@@ -151,14 +156,16 @@ a { color: var(--accent); text-decoration: none; }
   border-radius: var(--radius);
   padding: 10px 16px;
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 700;
   color: #04121f;
-  background: var(--accent);
-  transition: opacity .12s;
+  background: linear-gradient(135deg, var(--accent), var(--teal));
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: opacity .12s, transform .1s;
 }
+.btn:active { transform: scale(.97); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
-.btn--outline { background: transparent; color: var(--text); border-color: var(--border); }
-.btn--danger { background: var(--danger); color: #fff; }
+.btn--outline { background: transparent; color: var(--text); border-color: var(--border); box-shadow: none; }
+.btn--danger { background: linear-gradient(135deg, var(--danger), #aa0020); color: #fff; box-shadow: none; }
 .btn--full { inline-size: 100%; }
 
 .link-button {
@@ -195,11 +202,12 @@ a { color: var(--accent); text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: 999px;
+  padding: 3px 10px;
+  border-radius: 8px;
   font-size: var(--fs-xs);
-  font-weight: 600;
-  border: 1px solid currentColor;
+  font-weight: 700;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border: none;
 }
 
 /* ── feedback ──────────────────────────────────────────── */
@@ -707,26 +715,6 @@ a { color: var(--accent); text-decoration: none; }
   font-size: var(--fs-sm);
 }
 
-/* StatTile */
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--gap-sm); }
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: var(--gap-sm) var(--gap-xs);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text);
-  font: inherit;
-}
-.stat--btn { cursor: pointer; }
-.stat--btn:hover { border-color: var(--accent); }
-.stat--btn[aria-pressed='true'] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
-.stat--btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.stat__value { font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.stat__label { font-size: var(--fs-xs); color: var(--muted); }
 
 .iconbtn {
   display: inline-grid;
@@ -755,3 +743,101 @@ a { color: var(--accent); text-decoration: none; }
 .errorstate { display: flex; flex-direction: column; align-items: center; gap: var(--gap-sm); padding: var(--gap-lg) var(--gap); text-align: center; }
 .errorstate__icon { font-size: 28px; }
 .errorstate__msg { margin: 0; color: var(--danger); }
+
+
+/* ── I App Lite look: stat cards, search bar, patient cards ──────────
+   Ported from the published build, whose source was never committed. */
+.stat-grid { display: flex; flex-wrap: wrap; gap: var(--gap-sm); }
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  flex: 1 1 calc(50% - 6px);
+  min-inline-size: 130px;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  background: linear-gradient(135deg, var(--card), var(--card-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap);
+}
+.stat-card--btn { cursor: pointer; }
+.stat-card--btn:hover { border-color: var(--accent); }
+.stat-card--btn[aria-pressed='true'] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.stat-card--btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  inset-inline-end: -15px;
+  inline-size: 60px;
+  block-size: 60px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--stat-color, var(--accent)) 20%, transparent);
+}
+.stat-card__icon { font-size: 22px; margin-block-end: 8px; position: relative; }
+.stat-card__value { font-size: 24px; font-weight: 800; color: var(--stat-color, var(--accent)); position: relative; font-variant-numeric: tabular-nums; }
+.stat-card__suffix { font-size: 11px; font-weight: 400; margin-inline-start: 3px; }
+.stat-card__label { font-size: var(--fs-xs); color: var(--muted); margin-block-start: 4px; position: relative; display: block; }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.search-bar__icon { color: var(--accent); font-size: 15px; }
+.search-bar input {
+  flex: 1;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: none;
+  border: none;
+  outline: none;
+}
+.search-bar__clear { color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; background: none; border: 0; padding: 0 4px; }
+
+.patient-card {
+  position: relative;
+  background: linear-gradient(135deg, var(--card), var(--card-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap);
+}
+.patient-card__badge-new {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  background: var(--teal);
+  color: var(--bg);
+  border-radius: 6px;
+  padding: 1px 7px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.avatar-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--teal) 30%, transparent));
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* The `hidden` attribute must always win. Classes such as .stack or .row set
+   `display:flex`, which otherwise overrides the browser's default and made
+   every tab panel show at once. */
+[hidden] { display: none !important; }
+
+/* Light theme: the gradient buttons are darker, so their label must be white. */
+:root[data-theme='light'] .btn:not(.btn--outline) { color: #fff; }
