@@ -11,7 +11,7 @@
 #
 #  الاستعمال — من داخل مجلد المشروع (حيث package.json):
 #      bash deploy-to-pages.sh ../iapp/app
-#      bash deploy-to-pages.sh ../iapp/app --push
+#      bash deploy-to-pages.sh ../iapp/app --push   # فرع deploy/... ثم PR، لا دفع إلى main
 #
 #  الوسيط الأول = مجلد النشر داخل مستودع الصفحات.
 # =============================================================================
@@ -31,6 +31,38 @@ DO_PUSH="${2:-}"
 
 [ -f package.json ] || die "شغّل السكربت من داخل مجلد المشروع (حيث package.json)"
 grep -q '"iapp-react"' package.json || die "package.json ليس لمشروع iapp-react"
+
+# ---------------------------------------------------------------------------
+# 0) حارس المصدر — لا يُنشر إلا ما هو محفوظ على GitHub في فرع main.
+#    السبب: النشر من نسخة محلية ناقصة أو غير مرفوعة يستبدل التطبيق الحي
+#    بنسخة قديمة ويضيّع تعديلات. الحارس يرفض بدل أن يخمّن.
+# ---------------------------------------------------------------------------
+rule; say "${BLD}فحص المصدر${OFF}"; rule
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "هذا المجلد ليس مستودع git"
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+[ "$BRANCH" = "main" ] || die "أنت على الفرع '$BRANCH' — النشر من main فقط:  git checkout main"
+ok "الفرع main"
+
+if [ -n "$(git status --porcelain)" ]; then
+  git status --short >&2
+  die "فيه تعديلات غير محفوظة (فوق). احفظها بـ commit وارفعها، أو تخلّص منها، ثم أعد المحاولة"
+fi
+ok "لا تعديلات غير محفوظة"
+
+git fetch -q origin main || die "تعذّر الاتصال بـ GitHub — لا نشر بدون التأكد من آخر نسخة"
+LOCAL="$(git rev-parse HEAD)"; REMOTE="$(git rev-parse origin/main)"
+if [ "$LOCAL" != "$REMOTE" ]; then
+  if git merge-base --is-ancestor "$REMOTE" "$LOCAL"; then
+    die "فيه commits محلية لم تُرفع إلى GitHub — نفّذ  git push  أولاً"
+  elif git merge-base --is-ancestor "$LOCAL" "$REMOTE"; then
+    die "نسختك أقدم من GitHub — نفّذ  git pull  أولاً"
+  else
+    die "main المحلي وبعيده متباعدان — راجع الوضع قبل النشر"
+  fi
+fi
+SHA="$(git rev-parse --short HEAD)"
+ok "مطابق لـ origin/main (${SHA})"
 
 NPM=npm
 command -v npm >/dev/null 2>&1 || NPM=npm.cmd
@@ -113,6 +145,9 @@ N_ASSETS="$(ls dist/assets 2>/dev/null | wc -l | tr -d ' ')"
 [ "$N_ASSETS" -gt 0 ] || die "مجلد dist/assets فارغ"
 ok "عدد ملفات assets: $N_ASSETS"
 
+printf 'source=iapp-react-source@%s\nbuilt=%s\n' "$SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/build-info.txt
+ok "build-info.txt (المصدر ${SHA})"
+
 # ---------------------------------------------------------------------------
 # 5) النشر. المجلد الهدف يُفرَّغ من ناتج بناء سابق فقط — لا نحذف .git ولا
 #    أي ملف خارج ما ينتجه البناء.
@@ -150,10 +185,13 @@ if [ "$DO_PUSH" = "--push" ]; then
   REPO="$(cd "$TARGET" && git rev-parse --show-toplevel 2>/dev/null || true)"
   [ -n "$REPO" ] || die "مجلد النشر ليس داخل مستودع git"
   cd "$REPO"
+  # لا ندفع إلى main مباشرة: فرع جديد + Pull Request تراجعه ثم تدمجه.
+  PB="deploy/$(date +%Y%m%d-%H%M)-${SHA}"
+  git checkout -q -b "$PB"
   git add -A
-  git commit -m "deploy: publish built app to Pages" || warn "لا جديد للالتزام"
-  git push
-  ok "تم الدفع."
+  git commit -q -m "deploy: iapp-react-source@${SHA}" || warn "لا جديد للالتزام"
+  git push -u origin "$PB"
+  ok "رُفع الفرع $PB — افتح Pull Request منه إلى main وادمجه لينشر الموقع."
 else
   say "${BLD}الخطوة الأخيرة — نفّذها بنفسك:${OFF}"
   say "  cd $TARGET"
