@@ -568,7 +568,12 @@ export async function update(id: string, data: Record<string, unknown>): Promise
 
 /** The full exam: findings already grouped by eye, ready for the form. */
 export async function getFull(id: string): Promise<Examination> {
-  const r = await supabase.from('examinations').select('*').eq('id', id).single();
+  const r = await supabase
+    .from('examinations')
+    .select('*')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .single();
   if (r.error) throw svcError(r.error, 'قراءة الفحص', CLINICAL_ERRORS);
 
   const e = r.data as unknown as Examination;

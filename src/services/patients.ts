@@ -43,10 +43,11 @@ export interface PatientRow {
   gender: string | null;
   date_of_birth: string | null;
   is_active: boolean;
+  created_at: string | null;
 }
 
 const COLS =
-  'id, patient_code, full_name, phone, gender, date_of_birth, is_active' as const;
+  'id, patient_code, full_name, phone, gender, date_of_birth, is_active, created_at' as const;
 
 function patientsTable() {
   return supabase.schema('iapp').from('patients');
@@ -98,6 +99,7 @@ export async function get(id: string): Promise<PatientRow | null> {
   const { data, error } = await patientsTable()
     .select(COLS)
     .eq('id', id)
+    .is('deleted_at', null)
     .maybeSingle();
 
   if (error) {

@@ -45,5 +45,6 @@ export async function recordConsultationPayment(
     p as unknown as Record<string, unknown>,
     'تحصيل رسم الكشف',
   );
+  if (!rows.length) throw new Error('تعذّر تسجيل التحصيل — لم يُرجع الخادم إيصالاً');
   return rows[0];
 }

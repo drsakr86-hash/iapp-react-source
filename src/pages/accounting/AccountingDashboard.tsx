@@ -8,8 +8,7 @@
  * ---------------------------------------------------------------------- */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button, Card, EmptyState, Spinner } from '../../components/ui';
+import { Card, EmptyState, Spinner, StatCard } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import * as reportsSvc from '../../services/accounting/reports';
 import type { AccountBalanceRow } from '../../types/accounting.types';
@@ -42,27 +41,17 @@ export default function AccountingDashboard() {
 
   return (
     <div className="stack">
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-        <Link to="/accounting/revenue"><Button>+ تحصيل</Button></Link>
-        <Link to="/accounting/expenses"><Button variant="outline">+ مصروف</Button></Link>
-        <Link to="/accounting/transfers"><Button variant="outline">+ تحويل</Button></Link>
-        <Link to="/accounting/refunds"><Button variant="outline">+ مرتجع</Button></Link>
-        <Link to="/accounting/closing"><Button variant="outline">إغلاق اليوم</Button></Link>
-        <Link to="/accounting/reports"><Button variant="outline">التقارير</Button></Link>
-        <Link to="/accounting/settings"><Button variant="outline">الإعدادات</Button></Link>
-      </div>
-
       {loading ? <Spinner label="جارٍ التحميل…" /> : null}
       {!loading && error ? <EmptyState icon="⚠️" text={error} /> : null}
 
       {!loading && !error ? (
         <>
           <Card title="ملخص اليوم">
-            <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-              <span className="tag">الإيرادات: {today.revenue.toFixed(2)}</span>
-              <span className="tag">المصروفات: {today.expenses.toFixed(2)}</span>
-              <span className="tag">المرتجعات: {today.refunds.toFixed(2)}</span>
-              <span className="tag">صافي الحركة: {today.net.toFixed(2)}</span>
+            <div className="stat-grid">
+              <StatCard icon="💰" value={today.revenue.toFixed(2)} label="الإيرادات" color="var(--success)" />
+              <StatCard icon="🧾" value={today.expenses.toFixed(2)} label="المصروفات" color="var(--danger)" />
+              <StatCard icon="↩️" value={today.refunds.toFixed(2)} label="المرتجعات" color="var(--gold)" />
+              <StatCard icon="📊" value={today.net.toFixed(2)} label="صافي الحركة" color="var(--accent)" />
             </div>
           </Card>
 
@@ -70,9 +59,34 @@ export default function AccountingDashboard() {
             {balances.length ? (
               <div className="stack" style={{ gap: 6 }}>
                 {balances.map((b) => (
-                  <div key={b.account_id} className="row" style={{ justifyContent: 'space-between' }}>
-                    <span>{b.name_ar}</span>
-                    <strong>
+                  <div
+                    key={b.account_id}
+                    className="row"
+                    style={{
+                      justifyContent: 'space-between',
+                      background: 'var(--bg)',
+                      borderRadius: 'var(--radius)',
+                      padding: '8px 12px',
+                    }}
+                  >
+                    <span className="row" style={{ gap: 8 }}>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          inlineSize: 28,
+                          blockSize: 28,
+                          borderRadius: 8,
+                          background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
+                        }}
+                      >
+                        🏦
+                      </span>
+                      {b.name_ar}
+                    </span>
+                    <strong style={{ color: 'var(--accent)' }}>
                       {b.current_balance.toFixed(2)} {b.currency}
                     </strong>
                   </div>
@@ -84,11 +98,6 @@ export default function AccountingDashboard() {
                 text="لا توجد حسابات/خزائن مُضافة بعد"
               />
             )}
-            <div style={{ marginBlockStart: 8 }}>
-              <Link to="/accounting/accounts">
-                <Button variant="outline">إدارة الحسابات</Button>
-              </Link>
-            </div>
           </Card>
         </>
       ) : null}

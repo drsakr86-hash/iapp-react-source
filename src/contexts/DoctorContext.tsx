@@ -33,8 +33,11 @@ export function DoctorProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mounted = useRef(true);
+  /** Latest-request ticket: a slow earlier read must not overwrite a newer one. */
+  const seq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const ticket = ++seq.current;
     if (status !== 'ready') {
       setDoctor(null);
       return;
@@ -43,13 +46,14 @@ export function DoctorProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const row = await doctorsService.mine();
-      if (mounted.current) setDoctor(row);
+      if (mounted.current && ticket === seq.current) setDoctor(row);
     } catch (e) {
       /* A missing doctor row is NOT an error — a secretary has none. Only a
          failed read is reported. */
-      if (mounted.current) setError(e instanceof Error ? e.message : 'تعذّر قراءة ملف الطبيب');
+      if (mounted.current && ticket === seq.current)
+        setError(e instanceof Error ? e.message : 'تعذّر قراءة ملف الطبيب');
     } finally {
-      if (mounted.current) setLoading(false);
+      if (mounted.current && ticket === seq.current) setLoading(false);
     }
   }, [status]);
 

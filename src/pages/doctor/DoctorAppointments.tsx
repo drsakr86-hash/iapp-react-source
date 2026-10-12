@@ -32,7 +32,8 @@ export default function DoctorAppointments() {
     setLoading(true);
     setError(null);
     try {
-      setList(await appointments.byDate(date));
+      const rows = await appointments.byDate(date);
+      setList(rows.filter((r) => r.status !== 'CANCELLED' && r.status !== 'NO_SHOW'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'تعذّر تحميل المواعيد');
     } finally {

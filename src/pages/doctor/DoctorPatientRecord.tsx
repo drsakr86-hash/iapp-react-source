@@ -21,7 +21,7 @@
  * (appointments.complete → complete_appointment RPC).
  * ---------------------------------------------------------------------- */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Card, EmptyState, Tag, TabPanel, Tabs } from '../../components/ui';
 import { PatientBar } from '../../components/doctor/PatientBar';
@@ -75,6 +75,12 @@ export default function DoctorPatientRecord() {
   const [patients, setPatients] = useState<patientsSvc.PatientRow[]>([]);
   const [patientId, setPatientId] = useState(params.patientId ?? '');
   const [search, setSearch] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [creating, setCreating] = useState(false);
+  /* Captured once per mount: marks patients added in the last 24h as «جديد». */
+  const [now] = useState(() => Date.now());
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,15 +140,23 @@ export default function DoctorPatientRecord() {
     }
   }, [params.patientId, patientId]);
 
+  /* The patient currently on screen. A slow response for a patient the doctor
+     has already navigated away from must never overwrite the new one. */
+  const currentPatient = useRef('');
+
   const loadPatient = useCallback(async () => {
     if (!patientId) {
       setPatient(null);
       return;
     }
+    const asked = patientId;
     setError(null);
     try {
-      setPatient(await patientsSvc.getClinical(patientId));
+      const row = await patientsSvc.getClinical(patientId);
+      if (currentPatient.current !== asked) return;
+      setPatient(row);
     } catch (e) {
+      if (currentPatient.current !== asked) return;
       setError(e instanceof Error ? e.message : 'تعذّر تحميل بيانات المريض');
     }
   }, [patientId]);
@@ -158,6 +172,7 @@ export default function DoctorPatientRecord() {
       setOrders([]);
       return;
     }
+    const asked = patientId;
     setError(null);
     try {
       const [v, e, d, f, rx, s, o] = await Promise.all([
@@ -169,6 +184,8 @@ export default function DoctorPatientRecord() {
         imaging.listByPatient(patientId),
         imaging.ordersByPatient(patientId),
       ]);
+      const th = await imaging.thumbUrls(s);
+      if (currentPatient.current !== asked) return;
       setVisits(v);
       setExams(e);
       setDiagnoses(d);
@@ -176,19 +193,21 @@ export default function DoctorPatientRecord() {
       setPrescriptions(rx);
       setStudies(s);
       setOrders(o);
-      setThumbs(await imaging.thumbUrls(s));
+      setThumbs(th);
     } catch (e) {
+      if (currentPatient.current !== asked) return;
       setError(e instanceof Error ? e.message : 'تعذّر تحميل ملف المريض');
     }
   }, [patientId]);
 
   useEffect(() => {
     /* Server state keyed by patient — re-read on change. */
+    currentPatient.current = patientId || '';
     // oxlint-disable-next-line react/set-state-in-effect
     void loadPatient();
     // oxlint-disable-next-line react/set-state-in-effect
     void loadClinicalRecord();
-  }, [loadPatient, loadClinicalRecord]);
+  }, [loadPatient, loadClinicalRecord, patientId]);
 
   /* Today's already-open visit, if any. This ONLY discovers a visit when
      none is currently known for this patient — it must not re-run on every
@@ -244,6 +263,46 @@ export default function DoctorPatientRecord() {
       setShowVisitForm(true);
     }
   }, [urlAction, patientId, activeVisit]);
+
+  async function addPatient() {
+    if (creating || !newName.trim()) return;
+    setCreating(true);
+    try {
+      const created = await patientsSvc.create({ fullName: newName, phone: newPhone || null });
+      toast.success('تم إضافة المريض');
+      setShowNew(false);
+      setNewName('');
+      setNewPhone('');
+      pickPatient(created.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'تعذّر إضافة المريض');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function isNewPatient(p: patientsSvc.PatientRow): boolean {
+    return p.created_at ? now - new Date(p.created_at).getTime() < 86_400_000 : false;
+  }
+
+  async function removeFromList(p: patientsSvc.PatientRow) {
+    if (
+      !(await confirm({
+        title: 'حذف ملف المريض',
+        message: `حذف ملف "${p.full_name}" نهائياً من القوائم؟ (السجلات الطبية المرتبطة تبقى محفوظة في قاعدة البيانات)`,
+        confirmLabel: 'حذف',
+        danger: true,
+      }))
+    )
+      return;
+    try {
+      await patientsSvc.remove(p.id);
+      toast.success('تم حذف المريض من القوائم');
+      setPatients((list) => list.filter((x) => x.id !== p.id));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'تعذّر حذف المريض');
+    }
+  }
 
   function pickPatient(id: string) {
     setTab('visit');
@@ -437,29 +496,102 @@ export default function DoctorPatientRecord() {
             </Button>
           </div>
         ) : (
-          <>
-            <label className="field">
-              <span className="field__label">بحث</span>
+          <div className="stack">
+            <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontWeight: 700 }}>المرضى ({patients.length})</span>
+              <Button style={{ padding: '7px 14px', fontSize: 12 }} onClick={() => setShowNew((v) => !v)}>
+                {showNew ? 'إلغاء' : '+ مريض جديد'}
+              </Button>
+            </div>
+
+            {showNew ? (
+              <div
+                className="stack"
+                style={{ background: 'var(--bg)', borderRadius: 'var(--radius)', padding: 12 }}
+              >
+                <label className="field">
+                  <span className="field__label">الاسم الكامل</span>
+                  <input
+                    type="text"
+                    value={newName}
+                    placeholder="اسم المريض"
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span className="field__label">الهاتف</span>
+                  <input
+                    type="text"
+                    value={newPhone}
+                    placeholder="رقم الهاتف (اختياري)"
+                    onChange={(e) => setNewPhone(e.target.value)}
+                  />
+                </label>
+                <Button onClick={() => void addPatient()} disabled={creating || !newName.trim()}>
+                  {creating ? 'جارٍ الحفظ…' : '✓ حفظ المريض'}
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="search-bar">
+              <span className="search-bar__icon" aria-hidden="true">
+                🔍
+              </span>
               <input
                 type="text"
                 value={search}
-                placeholder="الاسم أو رقم الهاتف أو الكود"
+                placeholder="ابحث بالاسم أو رقم الهاتف أو الكود..."
+                aria-label="بحث عن مريض"
                 onChange={(e) => setSearch(e.target.value)}
               />
-            </label>
-            <label className="field">
-              <span className="field__label">المريض</span>
-              <select value={patientId} onChange={(e) => pickPatient(e.target.value)}>
-                <option value="">— اختر المريض —</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name}
-                    {p.phone ? ` — ${p.phone}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </>
+              {search ? (
+                <button type="button" className="search-bar__clear" aria-label="مسح البحث" onClick={() => setSearch('')}>
+                  ×
+                </button>
+              ) : null}
+            </div>
+
+            {patients.map((p) => {
+              const years = M.ageFrom(p.date_of_birth);
+              return (
+                <div key={p.id} className="patient-card">
+                  {isNewPatient(p) ? <span className="patient-card__badge-new">جديد</span> : null}
+                  <div className="row" style={{ gap: 12, marginBottom: 10 }}>
+                    <div className="avatar-circle" aria-hidden="true">
+                      {(p.full_name || '?')[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="row" style={{ gap: 6 }}>
+                        <strong>{p.full_name}</strong>
+                        <Tag label={p.patient_code} color="var(--accent)" />
+                      </div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {years == null ? '—' : `${years} سنة`}
+                        {p.phone ? ` · ${p.phone}` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="row" style={{ gap: 6 }}>
+                    <button
+                      type="button"
+                      className="btn btn--danger"
+                      style={{ padding: '7px 12px' }}
+                      aria-label={`حذف ${p.full_name}`}
+                      onClick={() => void removeFromList(p)}
+                    >
+                      🗑
+                    </button>
+                    <Button full onClick={() => pickPatient(p.id)}>
+                      📂 الملف الكامل
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {!patients.length && search ? (
+              <EmptyState icon="👤" text={`لا يوجد مريض بهذا البحث: "${search}"`} />
+            ) : null}
+          </div>
         )}
         {error ? <p className="alert">{error}</p> : null}
       </Card>

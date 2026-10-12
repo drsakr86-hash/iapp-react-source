@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Card, ErrorState, SkeletonList, StatTile, Tag } from '../../components/ui';
+import { Button, Card, ErrorState, SkeletonList, StatCard, Tag } from '../../components/ui';
 import { MedValue } from '../../components/medical/Medical';
 import { NewAppointmentForm } from '../../components/appointments/NewAppointmentForm';
 import { useDoctor } from '../../hooks/useDoctor';
@@ -21,6 +21,15 @@ import {
 
 /** The queue changes while the doctor works; refresh quietly. */
 const REFRESH_MS = 30_000;
+
+/** Emoji + colour of each queue filter card (I App Lite look). */
+const FILTER_LOOK: Record<QueueFilter, { icon: string; color: string }> = {
+  all: { icon: '📋', color: 'var(--accent)' },
+  expected: { icon: '🗓️', color: 'var(--purple)' },
+  waiting: { icon: '⏳', color: 'var(--gold)' },
+  inclinic: { icon: '🩺', color: 'var(--success)' },
+  done: { icon: '✅', color: 'var(--teal)' },
+};
 
 export default function DoctorHome() {
   useDocumentTitle('اليوم');
@@ -52,9 +61,10 @@ export default function DoctorHome() {
         date,
       });
 
-      const doctorRows = doctor?.id
-        ? rows.filter((row) => row.doctor_id === doctor.id)
-        : rows;
+      /* Cancelled / no-show appointments are not part of the day's list. */
+      const doctorRows = (
+        doctor?.id ? rows.filter((row) => row.doctor_id === doctor.id) : rows
+      ).filter((row) => row.status !== 'CANCELLED' && row.status !== 'NO_SHOW');
 
       doctorRows.sort((a, b) =>
         String(a.scheduled_time ?? '').localeCompare(String(b.scheduled_time ?? '')),
@@ -87,7 +97,7 @@ export default function DoctorHome() {
     setWorkingId(appointment.id);
 
     try {
-      await action.run();
+      await action.run(action.requiresReason ? 'إلغاء بواسطة الطبيب' : undefined);
 
       await load(true);
     } catch (e) {
@@ -161,15 +171,16 @@ export default function DoctorHome() {
         </div>
       </Card>
 
-      <div className="stats" role="group" aria-label="تصفية مواعيد اليوم حسب الحالة">
+      <div className="stat-grid" role="group" aria-label="تصفية مواعيد اليوم حسب الحالة">
         {QUEUE_FILTERS.map((f) => (
-          <StatTile
+          <StatCard
             key={f.key}
+            icon={FILTER_LOOK[f.key].icon}
+            color={FILTER_LOOK[f.key].color}
             label={f.label}
             value={counts[f.key]}
             active={filter === f.key}
             onClick={() => setFilter(f.key)}
-            tone={f.key === 'waiting' && counts.waiting > 0 ? 'var(--gold)' : undefined}
           />
         ))}
       </div>

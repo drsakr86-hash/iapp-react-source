@@ -137,7 +137,7 @@ export default function AccountingReports() {
       ) : null}
 
       {!loading && !error && tab === 'clinic' ? (
-        <Card title="ملخص حسب العيادة">
+        <Card title="ملخص حسب العيادة (إجمالي كل الوقت)">
           {clinicSummary.length ? (
             <table className="medical-report__table" style={{ width: '100%' }}>
               <thead><tr><th>العيادة</th><th>الإيرادات</th><th>المصروفات</th><th>المرتجعات</th></tr></thead>
@@ -159,7 +159,7 @@ export default function AccountingReports() {
       ) : null}
 
       {!loading && !error && tab === 'service' ? (
-        <Card title="الإيراد حسب الخدمة">
+        <Card title="الإيراد حسب الخدمة (إجمالي كل الوقت)">
           {serviceSummary.length ? (
             <table className="medical-report__table" style={{ width: '100%' }}>
               <thead><tr><th>الخدمة</th><th>الإجمالي</th><th>عدد العمليات</th></tr></thead>
@@ -180,7 +180,7 @@ export default function AccountingReports() {
       ) : null}
 
       {!loading && !error && tab === 'method' ? (
-        <Card title="الإيراد حسب طريقة الدفع">
+        <Card title="الإيراد حسب طريقة الدفع (إجمالي كل الوقت)">
           {methodSummary.length ? (
             <table className="medical-report__table" style={{ width: '100%' }}>
               <thead><tr><th>طريقة الدفع</th><th>الإجمالي</th><th>عدد العمليات</th></tr></thead>

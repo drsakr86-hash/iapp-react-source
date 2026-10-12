@@ -5,7 +5,7 @@
  * indistinguishable from a dead app. It shows an Arabic message and a way
  * back, and logs the technical detail to the console only.
  *
- * The stack is shown in development only. Patients must never see a raw
+ * The stack is never shown: patients must never see a raw
  * error, and a stack trace can leak table and column names.
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
@@ -48,21 +48,6 @@ export class ErrorBoundary extends Component<Props, State> {
         <button className="btn" onClick={this.reset}>
           إعادة التحميل
         </button>
-        {/* TEMPORARY — always show the message for on-device diagnosis
-            (mobile has no DevTools access). Revert to import.meta.env.DEV
-            before any real deployment; this can leak table/column names. */}
-        <pre
-          style={{
-            maxWidth: '100%',
-            overflow: 'auto',
-            direction: 'ltr',
-            textAlign: 'left',
-            fontSize: 11,
-            color: 'var(--muted)',
-          }}
-        >
-          {error.stack ?? error.message}
-        </pre>
       </div>
     );
   }
