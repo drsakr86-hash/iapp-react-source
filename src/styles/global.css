@@ -755,3 +755,17 @@ a { color: var(--accent); text-decoration: none; }
 .errorstate { display: flex; flex-direction: column; align-items: center; gap: var(--gap-sm); padding: var(--gap-lg) var(--gap); text-align: center; }
 .errorstate__icon { font-size: 28px; }
 .errorstate__msg { margin: 0; color: var(--danger); }
+
+/* The `hidden` attribute must always win. Classes such as .stack or .row set
+   `display:flex`, which otherwise overrides the browser's default
+   `[hidden]{display:none}` and made every tab panel show at once. */
+[hidden] { display: none !important; }
+
+/* SVG icons inside buttons, tags, chips and notes sit on the text baseline. */
+.btn svg, .tag svg, .chip svg, .muted svg, .patientbar__alert svg {
+  vertical-align: -0.22em;
+  margin-inline-end: 0.4em;
+}
+.empty-state__icon { display: flex; justify-content: center; color: var(--muted); }
+.errorstate__icon { display: flex; justify-content: center; color: var(--danger, #e5484d); }
+.modal__x { display: inline-flex; align-items: center; justify-content: center; }

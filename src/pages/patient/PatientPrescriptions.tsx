@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import { useEffect, useState } from 'react';
 import { Card, Spinner } from '../../components/ui';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -57,7 +58,7 @@ function PrescriptionCard({ rx }: { rx: portal.MyPrescriptionRow }) {
 
       {rx.refractions.length > 0 ? (
         <div className="stack" style={{ marginTop: 8 }}>
-          <div className="muted">👓 كشف النظارة</div>
+          <div className="muted"><Icon name="glasses" size={16} /> كشف النظارة</div>
           <table style={{ width: '100%', fontSize: 13, textAlign: 'center' }}>
             <thead>
               <tr>
@@ -85,7 +86,7 @@ function PrescriptionCard({ rx }: { rx: portal.MyPrescriptionRow }) {
 
       {meds.length > 0 ? (
         <div className="stack" style={{ marginTop: 8 }}>
-          <div className="muted">💊 الأدوية</div>
+          <div className="muted"><Icon name="pill" size={16} /> الأدوية</div>
           {meds.map((m) => (
             <div key={m.id} className="muted">
               • {m.free_text ?? '—'}
@@ -103,7 +104,7 @@ function PrescriptionCard({ rx }: { rx: portal.MyPrescriptionRow }) {
         </div>
       ) : null}
 
-      {rx.notes ? <p className="muted" style={{ marginTop: 8 }}>📝 {rx.notes}</p> : null}
+      {rx.notes ? <p className="muted" style={{ marginTop: 8 }}><Icon name="note" size={16} /> {rx.notes}</p> : null}
     </Card>
   );
 }

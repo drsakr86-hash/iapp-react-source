@@ -13,6 +13,7 @@
  * current filter actually returned.
  * ---------------------------------------------------------------------- */
 
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button, Card, EmptyState, ErrorState, SkeletonList } from '../../components/ui';
@@ -403,11 +404,11 @@ export default function DoctorPayments() {
                   setQuery(e.target.value);
                   setPage(1);
                 }}
-                placeholder="🔍 ابحث باسم المريض أو رقم الإيصال أو الملاحظات"
+                placeholder="ابحث باسم المريض أو رقم الإيصال أو الملاحظات"
                 aria-label="بحث في سجل المدفوعات"
               />
               <Button variant="outline" disabled={!filtered.length} onClick={exportCsv}>
-                ⬇️ تصدير Excel (CSV)
+                <Icon name="download" size={16} /> تصدير Excel (CSV)
               </Button>
             </div>
           ) : null}

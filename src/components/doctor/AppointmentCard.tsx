@@ -9,6 +9,7 @@
  * Every action is an RPC. Nothing here writes appointment state directly.
  * ---------------------------------------------------------------------- */
 
+import { Icon } from '../ui/Icon';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as appointments from '../../services/appointments';
@@ -147,7 +148,7 @@ export function AppointmentCard({
       {reminderUrl ? (
         <div className="appt__actions">
           <a className="chip" href={reminderUrl} target="_blank" rel="noopener noreferrer">
-            💬 تذكير واتساب
+            <Icon name="message" size={16} /> تذكير واتساب
           </a>
         </div>
       ) : null}

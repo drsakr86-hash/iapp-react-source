@@ -1,3 +1,4 @@
+import { Icon } from '../../components/ui/Icon';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Card, ErrorState, SkeletonList, StatTile, Tag } from '../../components/ui';
@@ -155,9 +156,9 @@ export default function DoctorHome() {
             marginTop: 12,
           }}
         >
-          <Tag label={`📅 ${date}`} color="var(--accent)" />
-          <Tag label={`👥 ${list.length} موعد`} color="var(--teal)" />
-          <Tag label={`✓ ${completed} مكتمل`} color="var(--success)" />
+          <Tag label={<><Icon name="calendar" size={16} /> {date}</>} color="var(--accent)" />
+          <Tag label={<><Icon name="users" size={16} /> {list.length} موعد</>} color="var(--teal)" />
+          <Tag label={<><Icon name="check" size={16} /> {completed} مكتمل</>} color="var(--success)" />
         </div>
       </Card>
 
@@ -178,9 +179,12 @@ export default function DoctorHome() {
         {calling
           ? 'جارٍ النداء…'
           : nextUp
-            ? `📣 نادِ التالي: ${nextUp.display_name ?? 'بدون اسم'}${
-                nextUp.wait_minutes ? ` (ينتظر ${nextUp.wait_minutes} د)` : ''
-              }`
+            ? (
+                <>
+                  <Icon name="megaphone" size={16} /> نادِ التالي: {nextUp.display_name ?? 'بدون اسم'}
+                  {nextUp.wait_minutes ? ` (ينتظر ${nextUp.wait_minutes} د)` : ''}
+                </>
+              )
             : 'لا يوجد مرضى في الانتظار'}
       </Button>
 
@@ -285,14 +289,14 @@ export default function DoctorHome() {
               >
                 {a.clinic_name ? (
                   <Tag
-                    label={`🏥 ${a.clinic_name}`}
+                    label={<><Icon name="building" size={16} /> {a.clinic_name}</>}
                     color="var(--muted)"
                   />
                 ) : null}
 
                 {a.doctor_name ? (
                   <Tag
-                    label={`👨‍⚕️ ${a.doctor_name}`}
+                    label={<><Icon name="user" size={16} /> {a.doctor_name}</>}
                     color="var(--accent)"
                   />
                 ) : null}

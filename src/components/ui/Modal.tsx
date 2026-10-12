@@ -1,3 +1,4 @@
+import { Icon } from './Icon';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -37,7 +38,7 @@ export function Modal({
         <div className="modal__head">
           <h2 className="modal__title">{title}</h2>
           <button className="modal__x" onClick={onClose} aria-label="إغلاق">
-            ✕
+            <Icon name="x" size={18} />
           </button>
         </div>
         <div className="modal__body">{children}</div>
