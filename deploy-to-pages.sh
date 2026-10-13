@@ -157,7 +157,7 @@ rule; say "${BLD}النشر إلى $TARGET${OFF}"; rule
 
 if [ -n "$(ls -A "$TARGET" 2>/dev/null | grep -v '^\.git$' || true)" ]; then
   STAMP="$(date +%Y%m%d-%H%M%S)"
-  BK="$TARGET/../.pages-backup-$STAMP"
+  BK="${HOME:-/tmp}/.iapp-pages-backups/$STAMP"   # خارج المستودع كي لا يدخل في commit
   mkdir -p "$BK"
   (cd "$TARGET" && tar -cf - --exclude=.git . ) | (cd "$BK" && tar -xf -)
   ok "نسخة احتياطية للمحتوى القديم في $BK"
@@ -184,11 +184,23 @@ rule
 if [ "$DO_PUSH" = "--push" ]; then
   REPO="$(cd "$TARGET" && git rev-parse --show-toplevel 2>/dev/null || true)"
   [ -n "$REPO" ] || die "مجلد النشر ليس داخل مستودع git"
+  ABS_TARGET="$(cd "$TARGET" && pwd -P)"
+  REPO="$(cd "$REPO" && pwd -P)"
+  REL="${ABS_TARGET#"$REPO"/}"
   cd "$REPO"
   # لا ندفع إلى main مباشرة: فرع جديد + Pull Request تراجعه ثم تدمجه.
   PB="deploy/$(date +%Y%m%d-%H%M)-${SHA}"
-  git checkout -q -b "$PB"
-  git add -A
+  # الفرع يبدأ من origin/main دائماً (لا من أي شيء كان ملتقطاً في هذه النسخة)
+  # والتغيير الوحيد المسموح به هو مجلد app/ — ولا شيء غيره.
+  git fetch -q origin main || die "تعذّر جلب main من مستودع الصفحات"
+  rm -rf "${TMPDIR:-$HOME}/.iapp-deploy-stage" && mkdir -p "${TMPDIR:-$HOME}/.iapp-deploy-stage"
+  cp -a "$ABS_TARGET/." "${TMPDIR:-$HOME}/.iapp-deploy-stage/"
+  git checkout -q -f -B "$PB" origin/main
+  git rm -rq --ignore-unmatch "$REL"
+  mkdir -p "$REL" && cp -a "${TMPDIR:-$HOME}/.iapp-deploy-stage/." "$REL/"
+  git add -A "$REL"
+  OUT="$(git diff --cached --name-only | grep -v "^$REL/" || true)"
+  [ -z "$OUT" ] || die "تغييرات خارج $REL — توقفت: $OUT"
   git commit -q -m "deploy: iapp-react-source@${SHA}" || warn "لا جديد للالتزام"
   git push -u origin "$PB"
   ok "رُفع الفرع $PB — افتح Pull Request منه إلى main وادمجه لينشر الموقع."
