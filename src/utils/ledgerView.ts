@@ -105,3 +105,6 @@ export function receiptShareMessage(r: {
     .filter((x, i, a) => x !== '' || (i > 0 && a[i - 1] !== ''))
     .join('\n');
 }
+
+/** Shown instead of the patient's id when the patient file was deleted. The payment itself stays in the ledger — money records are never hidden. */
+export const DELETED_PATIENT_LABEL = 'مريض محذوف';

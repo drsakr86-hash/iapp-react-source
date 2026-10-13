@@ -14,6 +14,7 @@ import { today } from '../../utils/medical';
 import {
   QUEUE_FILTERS,
   countByFilter,
+  isListedAppointment,
   matchesFilter,
   orderForReception,
   pickNextInQueue,
@@ -65,7 +66,7 @@ export default function DoctorHome() {
       /* Cancelled / no-show appointments are not part of the day's list. */
       const doctorRows = (
         doctor?.id ? rows.filter((row) => row.doctor_id === doctor.id) : rows
-      ).filter((row) => row.status !== 'CANCELLED' && row.status !== 'NO_SHOW');
+      ).filter(isListedAppointment);
 
       doctorRows.sort((a, b) =>
         String(a.scheduled_time ?? '').localeCompare(String(b.scheduled_time ?? '')),

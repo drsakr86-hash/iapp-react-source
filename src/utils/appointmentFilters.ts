@@ -23,6 +23,21 @@ const GROUPS: Record<Exclude<QueueFilter, 'all'>, string[]> = {
   done: ['COMPLETED', 'CANCELLED', 'NO_SHOW'],
 };
 
+/**
+ * Whether an appointment belongs on the day lists. Cancelled / no-show rows
+ * are hidden, and so are rows whose patient was deleted: the board view joins
+ * patients, RLS hides soft-deleted patients, so such a row arrives with a
+ * patient_id but no name (it used to show as a bare UUID). Walk-ins without a
+ * patient keep their guest name and are unaffected.
+ */
+export function isListedAppointment(
+  row: Pick<BoardRow, 'status' | 'patient_id' | 'display_name'>,
+): boolean {
+  if (row.status === 'CANCELLED' || row.status === 'NO_SHOW') return false;
+  if (row.patient_id && !String(row.display_name ?? '').trim()) return false;
+  return true;
+}
+
 export function matchesFilter(row: Pick<BoardRow, 'status'>, f: QueueFilter): boolean {
   if (f === 'all') return true;
   return GROUPS[f].includes(row.status ?? '');
