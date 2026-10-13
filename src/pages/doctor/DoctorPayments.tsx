@@ -25,6 +25,7 @@ import * as paymentsSvc from '../../services/payments';
 import type { PaymentRow, PaymentMethod } from '../../services/payments';
 import * as M from '../../utils/models';
 import {
+  DELETED_PATIENT_LABEL,
   LEDGER_FETCH_LIMIT,
   filterLedger,
   ledgerToCsv,
@@ -133,12 +134,15 @@ export default function DoctorPayments() {
     const ids = [...new Set(payments.map((p) => p.patient_id))].filter((id) => !patientNames[id]);
     if (!ids.length) return;
     let active = true;
-    Promise.all(ids.map((id) => patientsSvc.get(id).catch(() => null))).then((results) => {
+    /* get() returns null for a deleted patient (not an error) → label it.
+       A failed lookup stays unresolved and is retried, never mislabeled. */
+    Promise.all(ids.map((id) => patientsSvc.get(id).catch(() => undefined))).then((results) => {
       if (!active) return;
       setPatientNames((prev) => {
         const next = { ...prev };
         results.forEach((p, i) => {
           if (p) next[ids[i]] = p.full_name;
+          else if (p === null) next[ids[i]] = DELETED_PATIENT_LABEL;
         });
         return next;
       });
@@ -432,7 +436,7 @@ export default function DoctorPayments() {
                   {paged.items.map((p) => (
                     <tr key={p.id}>
                       <td>{p.paid_at ? M.fmtDay(p.paid_at.slice(0, 10)) : '—'}</td>
-                      <td>{patientNames[p.patient_id] ?? p.patient_id}</td>
+                      <td>{patientNames[p.patient_id] ?? '…'}</td>
                       <td>{services.find((s) => s.id === p.service_id)?.name_ar ?? '—'}</td>
                       <td>{p.amount.toFixed(2)}</td>
                       <td>{p.amount_paid.toFixed(2)}</td>

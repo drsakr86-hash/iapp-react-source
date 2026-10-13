@@ -254,6 +254,12 @@ h('12. مواعيد مريض محذوف');
   ok('زائر بلا ملف (guest) يظهر باسمه', L({ status: 'CONFIRMED', patient_id: null, display_name: 'زائر' }));
   ok('الملغي يختفي', !L({ status: 'CANCELLED', patient_id: 'p1', display_name: 'منى' }));
   ok('لم يحضر يختفي', !L({ status: 'NO_SHOW', patient_id: 'p1', display_name: 'منى' }));
+h('13. مدفوعات مريض محذوف');
+{
+  eq('ثابت التسمية', ledger.DELETED_PATIENT_LABEL, 'مريض محذوف');
+  const rows = [{ id: 'a', patient_id: 'gone', amount: 200, amount_paid: 200, discount: 0, status: 'paid', receipt_no: 'R-9', notes: null, paid_at: '2026-10-13T10:00:00Z', created_at: '2026-10-13T10:00:00Z', method: 'cash', service_id: null }];
+  eq('البحث يجد باسم "مريض محذوف"', ledger.filterLedger(rows, 'محذوف', () => ledger.DELETED_PATIENT_LABEL).length, 1);
+  ok('CSV يكتب التسمية لا الـ id', ledger.ledgerToCsv(rows, { patientName: () => ledger.DELETED_PATIENT_LABEL, serviceName: () => undefined, methodAr: (m) => m, statusAr: (x) => x, dateLabel: (d) => d.slice(0, 10) }).includes('مريض محذوف'));
 }
 
 console.log();
