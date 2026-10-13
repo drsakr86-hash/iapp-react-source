@@ -254,6 +254,8 @@ h('12. مواعيد مريض محذوف');
   ok('زائر بلا ملف (guest) يظهر باسمه', L({ status: 'CONFIRMED', patient_id: null, display_name: 'زائر' }));
   ok('الملغي يختفي', !L({ status: 'CANCELLED', patient_id: 'p1', display_name: 'منى' }));
   ok('لم يحضر يختفي', !L({ status: 'NO_SHOW', patient_id: 'p1', display_name: 'منى' }));
+}
+
 h('13. مدفوعات مريض محذوف');
 {
   eq('ثابت التسمية', ledger.DELETED_PATIENT_LABEL, 'مريض محذوف');
