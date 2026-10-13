@@ -239,7 +239,7 @@ export function ExaminationForm({
       row.follow_up_reason = f.follow_up_reason;
     }
 
-    const chk = M.validateExam(row);
+    const chk = M.validateExam(row, { requireClinical: isNew });
     if (!chk.ok) {
       setError(chk.errors[0]);
       return;

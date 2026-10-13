@@ -353,10 +353,42 @@ export function validateFinding(f: { field?: string; eye?: string; value?: unkno
   return r;
 }
 
-export function validateExam(e: Record<string, unknown>): ValidationResult {
+const filled = (v: unknown) => String(v ?? '').trim() !== '';
+
+/**
+ * Fields a NEW examination must carry before it can be saved (the doctor's
+ * decision, 2026-10-13): complaint, UCVA + BCVA for BOTH eyes, IOP for both
+ * eyes, refraction (sphere or cylinder) for both eyes, anterior segment,
+ * posterior segment, treatment plan. Everything else stays optional.
+ * Returns the Arabic labels of what is missing. IOP/refraction are only
+ * captured on create, so the caller applies this to new exams only.
+ */
+export function missingRequiredExamFields(e: Record<string, unknown>): string[] {
+  const miss: string[] = [];
+  if (!filled(e.chief_complaint)) miss.push('الشكوى الرئيسية');
+  if (!filled(e.va_right) || !filled(e.va_left)) miss.push('حدة الإبصار بدون نظارة (العينين)');
+  if (!filled(e.va_right_corrected) || !filled(e.va_left_corrected)) miss.push('حدة الإبصار مع النظارة (العينين)');
+  if (num(e.iop_right) == null || num(e.iop_left) == null) miss.push('ضغط العين (العينين)');
+  for (const [k, label] of [['od', 'OD'], ['os', 'OS']] as const) {
+    if (num(e[`ref_${k}_sph`]) == null && num(e[`ref_${k}_cyl`]) == null) miss.push(`الانكسار ${label} (SPH أو CYL)`);
+  }
+  if (!filled(e.anterior_segment)) miss.push('الجزء الأمامي');
+  if (!filled(e.posterior_segment)) miss.push('الجزء الخلفي');
+  if (!filled(e.treatment_plan)) miss.push('خطة العلاج');
+  return miss;
+}
+
+export function validateExam(
+  e: Record<string, unknown>,
+  opts: { requireClinical?: boolean } = {},
+): ValidationResult {
   const r = V();
   if (!e.patient_id) bad(r, 'المريض مطلوب');
   if (!isDate(e.exam_date)) bad(r, 'تاريخ الفحص غير صحيح');
+  if (opts.requireClinical) {
+    const miss = missingRequiredExamFields(e);
+    if (miss.length) bad(r, 'أكمل الحقول التالية: ' + miss.join('، '));
+  }
   // Visual acuity is text on purpose: CF, HM and PL are valid clinical
   // values and are not numeric.
   for (const k of ['iop_right', 'iop_left']) {
