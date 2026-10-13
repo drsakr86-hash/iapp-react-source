@@ -118,6 +118,22 @@ export const COMPLAINTS = ['ضعف النظر', 'التهاب العين', 'صد
 export const VA_VALUES = ['1.00', '0.9', '0.8', '0.7', '0.6', '0.5', '0.4', '0.3', '0.2', '0.1', '6/6', '6/9', '6/12', '6/18', '6/24', '6/36', '6/60', 'CF', 'HM', 'PL', 'NPL'];
 export const DIAGNOSES_LIST = ['قصر نظر', 'طول نظر', 'استجماتيزم', 'قصر النظر الشيخوخي', 'المياه البيضاء', 'المياه الزرقاء', 'التهاب الملتحمة', 'جفاف العين', 'اعتلال الشبكية السكري', 'تنكس البقعة الصفراء', 'الحول', 'كسل العين'];
 export const PLANS = ['نظارة طبية', 'عدسات لاصقة', 'قطرات', 'متابعة دورية', 'عملية المياه البيضاء', 'ليزك', 'حقن داخل العين', 'ليزر شبكية', 'تحويل لأخصائي'];
+/** Dropdown values for the refraction inputs (typing any other value stays possible).
+ *  Positive numbers carry no "+" because <input type="number"> rejects it. */
+function stepRange(from: number, to: number, step: number): string[] {
+  const out: string[] = [];
+  const n = Math.round(Math.abs(to - from) / step);
+  const dir = to >= from ? 1 : -1;
+  for (let i = 0; i <= n; i++) out.push((from + dir * i * step).toFixed(2));
+  return out;
+}
+export const REF_OPTIONS: Record<'sph' | 'cyl' | 'axis' | 'add', string[]> = {
+  sph: stepRange(10, -20, 0.25),
+  cyl: stepRange(0, -6, 0.25),
+  axis: Array.from({ length: 36 }, (_, i) => String((i + 1) * 5)),
+  add: stepRange(0.75, 3.5, 0.25),
+};
+
 export const SURGERY_LIST = ['المياه البيضاء بالفاكو + عدسة', 'استخراج المياه البيضاء ECCE', 'ترشيح للمياه الزرقاء', 'زرع صمام للمياه الزرقاء', 'ليزك LASIK', 'PRK', 'حقن داخل العين', 'استئصال الجسم الزجاجي', 'ليزر شبكية بانورامي', 'كبسولوتومي YAG', 'عملية حول', 'استئصال ظفرة', 'زراعة قرنية', 'تسليك القناة الدمعية', 'إزالة شحاذ العين'];
 
 /* ── helpers ─────────────────────────────────────────────────── */
@@ -372,8 +388,17 @@ export function missingRequiredExamFields(e: Record<string, unknown>): string[] 
   for (const [k, label] of [['od', 'OD'], ['os', 'OS']] as const) {
     if (num(e[`ref_${k}_sph`]) == null && num(e[`ref_${k}_cyl`]) == null) miss.push(`الانكسار ${label} (SPH أو CYL)`);
   }
-  if (!filled(e.anterior_segment)) miss.push('الجزء الأمامي');
-  if (!filled(e.posterior_segment)) miss.push('الجزء الخلفي');
+  // Anterior / posterior are captured as per-eye structured findings
+  // (e.findings), not as the legacy free-text columns; either form counts.
+  const rows = (Array.isArray(e.findings) ? e.findings : []) as Array<{ eye?: string; field?: string; value?: unknown }>;
+  const hasSegment = (eye: string, section: 'anterior' | 'posterior', legacy: unknown) =>
+    filled(legacy) || rows.some((r) => r.eye === eye && FIELD_SECTION[String(r.field)] === section && filled(r.value));
+  for (const [section, legacy, label] of [
+    ['anterior', e.anterior_segment, 'الجزء الأمامي'],
+    ['posterior', e.posterior_segment, 'الجزء الخلفي'],
+  ] as const) {
+    if (!hasSegment('OD', section, legacy) || !hasSegment('OS', section, legacy)) miss.push(`${label} (العينين)`);
+  }
   if (!filled(e.treatment_plan)) miss.push('خطة العلاج');
   return miss;
 }
