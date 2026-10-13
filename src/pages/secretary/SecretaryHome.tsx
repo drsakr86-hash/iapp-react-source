@@ -18,6 +18,7 @@ import { Button, Card, EmptyState, ErrorState, SkeletonList } from '../../compon
 import { AppointmentCard } from '../../components/doctor/AppointmentCard';
 import { NewAppointmentForm } from '../../components/appointments/NewAppointmentForm';
 import { CollectFeeModal } from '../../components/secretary/CollectFeeModal';
+import { QueueCallPanel } from '../../components/queue/QueueCallPanel';
 import { useAuth } from '../../hooks/useAuth';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import * as appointments from '../../services/appointments';
@@ -119,6 +120,10 @@ export default function SecretaryHome() {
           }}
           onCancel={() => setBooking(false)}
         />
+      ) : null}
+
+      {date === today() && !loading && !error ? (
+        <QueueCallPanel rows={list} role="secretary" onChanged={() => void load(true)} />
       ) : null}
 
       <Card title={filtering ? `المواعيد (${visible.length} من ${list.length})` : `مواعيد اليوم (${list.length})`}>

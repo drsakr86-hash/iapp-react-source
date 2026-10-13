@@ -29,6 +29,8 @@ const DoctorPayments = lazy(() => import('../pages/doctor/DoctorPayments'));
 const DoctorPaymentReceipt = lazy(() => import('../pages/doctor/DoctorPaymentReceipt'));
 const DoctorMore = lazy(() => import('../pages/doctor/DoctorMore'));
 const DoctorProfile = lazy(() => import('../pages/doctor/DoctorProfile'));
+const DoctorDisplays = lazy(() => import('../pages/doctor/DoctorDisplays'));
+const QueueDisplay = lazy(() => import('../pages/display/QueueDisplay'));
 const SecretaryHome = lazy(() => import('../pages/secretary/SecretaryHome'));
 const PatientHome = lazy(() => import('../pages/patient/PatientHome'));
 const PatientAppointments = lazy(() => import('../pages/patient/PatientAppointments'));
@@ -69,6 +71,11 @@ export function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
+        {/* Public waiting-room screen: no sign-in, outside every role shell. It
+            identifies itself with a registered token and can only read one
+            whitelisted snapshot (public.display_queue). */}
+        <Route path="/display" element={<QueueDisplay />} />
+
         <Route element={<ProtectedRoute allow={['doctor', 'admin']} />}>
           <Route path="/doctor" element={<AppShell section="doctor" />}>
             <Route index element={<DoctorHome />} />
@@ -84,6 +91,7 @@ export function AppRoutes() {
             <Route path="clinics" element={<AdminClinics />} />
             <Route path="services" element={<AdminServices />} />
             <Route path="lists" element={<DropdownSettings />} />
+            <Route path="displays" element={<DoctorDisplays />} />
             <Route path="payments" element={<DoctorPayments />} />
             <Route path="payments/:paymentId/receipt" element={<DoctorPaymentReceipt />} />
             {/* Visit, examination, diagnosis, prescriptions, imaging, and
