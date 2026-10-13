@@ -26,6 +26,7 @@ import { today } from '../../utils/medical';
 import {
   QUEUE_FILTERS,
   countByFilter,
+  isListedAppointment,
   matchesFilter,
   matchesSearch,
   orderForReception,
@@ -65,7 +66,7 @@ export default function SecretaryHome() {
       }
       try {
         const rows = await appointments.byDate(date);
-        setList(rows.filter((r) => r.status !== 'CANCELLED' && r.status !== 'NO_SHOW'));
+        setList(rows.filter(isListedAppointment));
         if (quiet) setError(null);
       } catch (e) {
         if (!quiet) setError(e instanceof Error ? e.message : 'تعذّر تحميل المواعيد');

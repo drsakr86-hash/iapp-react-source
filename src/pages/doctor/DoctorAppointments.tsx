@@ -17,6 +17,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import * as appointments from '../../services/appointments';
 import type { BoardRow } from '../../services/appointments';
 import { today } from '../../utils/medical';
+import { isListedAppointment } from '../../utils/appointmentFilters';
 
 export default function DoctorAppointments() {
   useDocumentTitle('المواعيد');
@@ -33,7 +34,7 @@ export default function DoctorAppointments() {
     setError(null);
     try {
       const rows = await appointments.byDate(date);
-      setList(rows.filter((r) => r.status !== 'CANCELLED' && r.status !== 'NO_SHOW'));
+      setList(rows.filter(isListedAppointment));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'تعذّر تحميل المواعيد');
     } finally {

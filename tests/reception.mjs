@@ -244,6 +244,18 @@ h('11. حقول الفحص الإلزامية (فحص جديد)');
   ok('حقول اختيارية لا تُطلب', !['رؤية الألوان', 'Cover', 'Pinhole', 'ملاحظات'].some((x) => msg.includes(x)));
 }
 
+h('12. مواعيد مريض محذوف');
+{
+  const L = filters.isListedAppointment;
+  ok('موعد عادي يظهر', L({ status: 'CONFIRMED', patient_id: 'p1', display_name: 'منى' }));
+  ok('مكتمل لمريض موجود يظهر', L({ status: 'COMPLETED', patient_id: 'p1', display_name: 'منى' }));
+  ok('مريض محذوف (id بلا اسم) يختفي', !L({ status: 'COMPLETED', patient_id: 'p1', display_name: null }));
+  ok('اسم فارغ/مسافات يختفي', !L({ status: 'CONFIRMED', patient_id: 'p1', display_name: '  ' }));
+  ok('زائر بلا ملف (guest) يظهر باسمه', L({ status: 'CONFIRMED', patient_id: null, display_name: 'زائر' }));
+  ok('الملغي يختفي', !L({ status: 'CANCELLED', patient_id: 'p1', display_name: 'منى' }));
+  ok('لم يحضر يختفي', !L({ status: 'NO_SHOW', patient_id: 'p1', display_name: 'منى' }));
+}
+
 console.log();
 if (failures.length) {
   console.log('\x1b[31m✗ فشل ' + failures.length + ' من ' + (pass + failures.length) + '\x1b[0m');
