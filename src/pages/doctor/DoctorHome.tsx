@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Card, ErrorState, SkeletonList, StatCard, Tag } from '../../components/ui';
 import { MedValue } from '../../components/medical/Medical';
@@ -8,6 +8,9 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import * as appointments from '../../services/appointments';
 import type { BoardRow } from '../../services/appointments';
 import { useConfirm } from '../../hooks/useConfirm';
+import { useAuth } from '../../hooks/useAuth';
+import { QueueCallPanel } from '../../components/queue/QueueCallPanel';
+import * as queue from '../../services/queue';
 import { useToast } from '../../hooks/useToast';
 import { FollowUpReminders } from '../../components/doctor/FollowUpReminders';
 import { today } from '../../utils/medical';
@@ -47,6 +50,11 @@ export default function DoctorHome() {
   const [calling, setCalling] = useState(false);
   const toast = useToast();
   const { confirm } = useConfirm();
+  const { profile } = useAuth();
+  const role = profile?.role ?? 'doctor';
+  /* One request id per "call next" click, kept until the server answers, so a
+     double-click or a retry after a dropped connection cannot call two people. */
+  const callRequestId = useRef<string | null>(null);
 
   const date = today();
 
@@ -135,17 +143,24 @@ export default function DoctorHome() {
     }
     setCalling(true);
     try {
-      const acts = await appointments.actionsFor(nextUp, 'doctor');
-      const call = acts.find((x) => x.to === 'IN_CLINIC');
-      if (!call) {
-        toast.error('لا يمكن نداء هذا المريض في حالته الحالية');
-        return;
-      }
-      await call.run();
-      toast.success(`تم نداء ${nextUp.display_name ?? 'المريض'}`);
+      /* The database picks and locks the next patient (same priority as the
+         button label above) and records the call, so two devices pressing
+         this together call two different patients, never the same one. */
+      callRequestId.current ??= queue.newRequestId();
+      const r = await queue.callNext({
+        clinicId: nextUp.clinic_id ?? '',
+        doctorId: doctor?.id ?? null,
+        requestId: callRequestId.current,
+      });
+      callRequestId.current = null;
+      toast.success(r.deduped ? 'تم النداء قبل لحظات' : 'تم نداء المريض التالي');
       await load(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'تعذّر نداء المريض');
+      const message = e instanceof Error ? e.message : 'تعذّر نداء المريض';
+      // keep the id only when the connection dropped: pressing again is then safe
+      if (!/تعذّر الاتصال/.test(message)) callRequestId.current = null;
+      toast.error(message);
+      void load(true);
     } finally {
       setCalling(false);
     }
@@ -196,6 +211,14 @@ export default function DoctorHome() {
               }`
             : 'لا يوجد مرضى في الانتظار'}
       </Button>
+
+      <QueueCallPanel
+        rows={list}
+        role={role}
+        doctorId={doctor?.id ?? null}
+        showNext={false}
+        onChanged={() => void load(true)}
+      />
 
       <Card title="اليوم">
         <div

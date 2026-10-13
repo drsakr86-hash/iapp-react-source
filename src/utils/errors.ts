@@ -49,6 +49,12 @@ export function translateDbError(error: unknown, context?: string): string {
   if (/not_found: appointment/i.test(m)) return 'الموعد غير موجود' + where;
   if (/too_late/i.test(m)) return 'تعذّر تنفيذ هذا الإجراء في الحالة الحالية للموعد' + where;
 
+  // iapp.call_next_patient / recall_patient / display screens
+  if (/queue_empty/i.test(m)) return 'لا يوجد مرضى في الانتظار الآن' + where;
+  if (/not_called/i.test(m)) return 'هذا المريض غير مُنادى حاليًا' + where;
+  if (/already_in_state/i.test(m)) return 'المريض في هذه الحالة بالفعل' + where;
+  if (/invalid_display_token/i.test(m)) return 'هذه الشاشة غير مسجّلة أو تم إلغاؤها' + where;
+
   return GENERIC_ERROR + where;
 }
 

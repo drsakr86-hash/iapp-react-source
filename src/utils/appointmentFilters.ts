@@ -117,3 +117,21 @@ export function pickNextInQueue<T extends Pick<BoardRow, 'status' | 'scheduled_t
       String(a.scheduled_time ?? '99:99').localeCompare(String(b.scheduled_time ?? '99:99')),
   )[0];
 }
+
+/**
+ * The whole waiting queue in calling order — the same priority as
+ * pickNextInQueue (longest wait first, then earlier scheduled time), which is
+ * also the order iapp.call_next_patient applies in the database. The first
+ * element is therefore always what "call next" will call.
+ */
+export function orderWaitingQueue<T extends Pick<BoardRow, 'status' | 'scheduled_time' | 'wait_minutes'>>(
+  rows: T[],
+): T[] {
+  return rows
+    .filter((r) => GROUPS.waiting.includes(r.status ?? ''))
+    .sort(
+      (a, b) =>
+        (b.wait_minutes ?? -1) - (a.wait_minutes ?? -1) ||
+        String(a.scheduled_time ?? '99:99').localeCompare(String(b.scheduled_time ?? '99:99')),
+    );
+}

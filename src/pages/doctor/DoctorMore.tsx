@@ -11,6 +11,7 @@ const ITEMS: { to: string; icon: string; label: string; hint: string }[] = [
   { to: '/doctor/clinics', icon: '🏥', label: 'العيادات', hint: 'بيانات الفروع والعناوين' },
   { to: '/doctor/services', icon: '🧾', label: 'الخدمات', hint: 'قائمة الخدمات والأسعار' },
   { to: '/doctor/lists', icon: '⚙️', label: 'القوائم', hint: 'خيارات القوائم المنسدلة في النماذج' },
+  { to: '/doctor/displays', icon: '📺', label: 'شاشات الانتظار', hint: 'روابط شاشات النداء في صالة الانتظار' },
   { to: '/doctor/profile', icon: '👤', label: 'ملفي', hint: 'الاسم والبيانات الشخصية' },
 ];
 

@@ -3855,6 +3855,43 @@ export type Database = {
           },
         ]
       }
+      // ↓ added by hand for migration 20261014000000_queue_calls_and_display.sql —
+      //   replace with `supabase gen types` output once that migration is applied.
+      display_devices: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          label: string
+          last_seen_at: string | null
+          revoked_at: string | null
+          show_names: boolean
+          token_hash: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      queue_calls: {
+        Row: {
+          appointment_id: string
+          called_at: string
+          called_by: string | null
+          called_by_role: string | null
+          clinic_id: string
+          doctor_id: string | null
+          id: number
+          kind: string
+          request_id: string
+          room: string | null
+          via: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Views: {
       v_active_patients: {
@@ -4789,6 +4826,17 @@ export type Database = {
           },
         ]
       }
+      // ↓ added by hand for migration 20261014000000_queue_calls_and_display.sql —
+      //   replace with `supabase gen types` output once that migration is applied.
+      v_queue_tickets: {
+        Row: {
+          appointment_id: string | null
+          clinic_id: string | null
+          scheduled_date: string | null
+          ticket_no: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       acting_role: { Args: never; Returns: string }
@@ -5420,6 +5468,45 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      // ↓ added by hand for migration 20261014000000_queue_calls_and_display.sql —
+      //   replace with `supabase gen types` output once that migration is applied.
+      call_next_patient: {
+        Args: {
+          p_clinic_id: string
+          p_date?: string
+          p_doctor_id?: string
+          p_request_id?: string
+          p_room?: string
+        }
+        Returns: {
+          call_id: number
+          appointment_id: string
+          kind: string
+          room: string | null
+          called_at: string
+          deduped: boolean
+        }[]
+      }
+      create_display_device: {
+        Args: { p_clinic_id: string; p_label: string; p_show_names?: boolean }
+        Returns: { device_id: string; token: string }[]
+      }
+      recall_patient: {
+        Args: { p_appointment_id: string; p_request_id?: string }
+        Returns: {
+          call_id: number
+          appointment_id: string
+          kind: string
+          room: string | null
+          called_at: string
+          deduped: boolean
+        }[]
+      }
+      revoke_display_device: { Args: { p_id: string }; Returns: undefined }
+      set_display_device_names: {
+        Args: { p_id: string; p_show: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
       ai_review_action: "accept" | "edit" | "reject" | "regenerate"
@@ -5679,6 +5766,8 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["iapp_role"]
       }
+      // ↓ added by hand for migration 20261014000000 (anonymous, read-only screen entry point)
+      display_queue: { Args: { p_token: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
