@@ -18,7 +18,7 @@ const eq = (name, a, b) => ok(name, JSON.stringify(a) === JSON.stringify(b), `ex
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { runScripts: 'dangerously', url: 'http://localhost/' });
 dom.window.eval(bundle);
-const { wa, filters, share, ledger, theme, fu } = dom.window.__iappReception;
+const { wa, filters, share, ledger, theme, fu, models } = dom.window.__iappReception;
 
 const h = (t) => console.log('\x1b[1m' + t + '\x1b[0m');
 
@@ -206,6 +206,27 @@ h('10. متابعات مستحقة');
   ok('follow-up text is clean without optional parts', !/undefined|null/.test(wa.followUpMessage({ dayLabel: 'd' })));
   ok('follow-up text has no clinical words', !/تشخيص|علاج|دواء|حقن/.test(m));
   ok('follow-up wa link', wa.whatsappUrl('01012345678', m).startsWith('https://wa.me/201012345678?text='));
+}
+
+h('11. حقول الفحص الإلزامية (فحص جديد)');
+{
+  const full = { patient_id: 'p', exam_date: '2026-10-13', chief_complaint: 'زغللة', va_right: '6/6', va_left: '6/9', va_right_corrected: '6/6', va_left_corrected: '6/6', iop_right: '14', iop_left: '15', ref_od_sph: '-1.00', ref_os_cyl: '-0.50', anterior_segment: 'سليم', posterior_segment: 'سليم', treatment_plan: 'نظارة' };
+  ok('كل الحقول → ينجح', models.validateExam(full, { requireClinical: true }).ok);
+  ok('فحص فارغ إلا المريض والتاريخ → يفشل للجديد', !models.validateExam({ patient_id: 'p', exam_date: '2026-10-13' }, { requireClinical: true }).ok);
+  ok('نفس الفحص الفارغ → يمر في التعديل (بدون الإلزام)', models.validateExam({ patient_id: 'p', exam_date: '2026-10-13' }).ok);
+  const miss = (patch) => models.missingRequiredExamFields({ ...full, ...patch });
+  eq('عين واحدة في UCVA لا تكفي', miss({ va_left: '' }), ['حدة الإبصار بدون نظارة (العينين)']);
+  eq('عين واحدة في BCVA لا تكفي', miss({ va_right_corrected: ' ' }), ['حدة الإبصار مع النظارة (العينين)']);
+  eq('عين واحدة في الضغط لا تكفي', miss({ iop_left: '' }), ['ضغط العين (العينين)']);
+  eq('الانكسار مطلوب لكل عين', miss({ ref_od_sph: '', ref_od_cyl: '' }), ['الانكسار OD (SPH أو CYL)']);
+  ok('SPH صفر (plano) يُحسب قيمة', miss({ ref_od_sph: '0' }).length === 0);
+  eq('الجزء الأمامي', miss({ anterior_segment: '' }), ['الجزء الأمامي']);
+  eq('الجزء الخلفي', miss({ posterior_segment: '' }), ['الجزء الخلفي']);
+  eq('خطة العلاج', miss({ treatment_plan: '' }), ['خطة العلاج']);
+  eq('الشكوى', miss({ chief_complaint: '  ' }), ['الشكوى الرئيسية']);
+  const msg = models.validateExam({ patient_id: 'p', exam_date: '2026-10-13' }, { requireClinical: true }).errors[0];
+  ok('الرسالة تسرد كل الناقص', msg.startsWith('أكمل الحقول التالية') && msg.includes('خطة العلاج') && msg.includes('الانكسار OS'), msg);
+  ok('حقول اختيارية لا تُطلب', !['رؤية الألوان', 'Cover', 'Pinhole', 'ملاحظات'].some((x) => msg.includes(x)));
 }
 
 console.log();

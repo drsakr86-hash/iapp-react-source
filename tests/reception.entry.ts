@@ -5,5 +5,6 @@ import * as share from '../src/utils/shareText';
 import * as ledger from '../src/utils/ledgerView';
 import * as theme from '../src/utils/theme';
 import * as fu from '../src/utils/followUps';
+import * as models from '../src/utils/models';
 
-(globalThis as unknown as Record<string, unknown>).__iappReception = { wa, filters, share, ledger, theme, fu };
+(globalThis as unknown as Record<string, unknown>).__iappReception = { wa, filters, share, ledger, theme, fu, models };

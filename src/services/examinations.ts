@@ -484,7 +484,7 @@ export async function listByPatient(pid: string, limit = 30): Promise<Examinatio
 }
 
 export async function createFull(data: Record<string, unknown>): Promise<CreateFullResult> {
-  const chk = M.validateExam(data);
+  const chk = M.validateExam(data, { requireClinical: true });
   if (!chk.ok) throw new Error(chk.errors[0]);
 
   const examPayload: TablesInsert<{ schema: 'iapp' }, 'examinations'> = {
