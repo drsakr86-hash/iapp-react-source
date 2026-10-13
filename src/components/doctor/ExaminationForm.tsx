@@ -387,14 +387,29 @@ export function ExaminationForm({
             {REF_ROWS.map(([label, part]) => (
               <div className="exam2col__row" key={part}>
                 <span className="exam2col__row-label">{label}</span>
-                <Input
-                  type="number"
-                  step={part === 'axis' ? '1' : '0.25'}
-                  dir="ltr"
-                  inputMode="decimal"
-                  value={f[`ref_${refSide}_${part}`]}
-                  onChange={(e) => set(`ref_${refSide}_${part}`, e.target.value)}
-                />
+                <div className="suggest">
+                  <Input
+                    type="number"
+                    step={part === 'axis' ? '1' : '0.25'}
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={f[`ref_${refSide}_${part}`]}
+                    onChange={(e) => set(`ref_${refSide}_${part}`, e.target.value)}
+                  />
+                  <select
+                    className="input suggest__pick"
+                    value=""
+                    onChange={(e) => e.target.value && set(`ref_${refSide}_${part}`, e.target.value)}
+                    aria-label={`${label} — اختيار من القائمة`}
+                  >
+                    <option value="">▾</option>
+                    {M.REF_OPTIONS[part].map((o) => (
+                      <option key={o} value={o}>
+                        {part !== 'axis' && Number(o) > 0 ? '+' + o : o}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ))}
           </>
