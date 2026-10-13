@@ -76,3 +76,23 @@ export function reminderMessage(r: ReminderInput): string {
     `نرجو الحضور قبل الموعد بـ 10 دقائق، وفي حال عدم القدرة على الحضور برجاء إبلاغنا.`
   );
 }
+
+export interface FollowUpReminderInput {
+  name?: string | null;
+  clinic?: string | null;
+  doctor?: string | null;
+  /** "الخميس 2026-10-09" — already formatted for display. */
+  dayLabel: string;
+}
+
+/** Follow-up (متابعة) reminder text. Contains no clinical information on purpose. */
+export function followUpMessage(r: FollowUpReminderInput): string {
+  const who = r.name ? ` ${r.name}` : '';
+  const where = r.clinic ? ` في ${r.clinic}` : '';
+  const withDoc = r.doctor ? ` مع ${r.doctor}` : '';
+  return (
+    `السلام عليكم${who}،\n` +
+    `نذكّركم بموعد المتابعة${where}${withDoc} المقرر يوم ${r.dayLabel}.\n` +
+    `برجاء التواصل معنا لتحديد الميعاد المناسب لكم. نتمنى لكم دوام الصحة.`
+  );
+}

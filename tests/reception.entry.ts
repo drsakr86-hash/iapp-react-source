@@ -4,5 +4,6 @@ import * as filters from '../src/utils/appointmentFilters';
 import * as share from '../src/utils/shareText';
 import * as ledger from '../src/utils/ledgerView';
 import * as theme from '../src/utils/theme';
+import * as fu from '../src/utils/followUps';
 
-(globalThis as unknown as Record<string, unknown>).__iappReception = { wa, filters, share, ledger, theme };
+(globalThis as unknown as Record<string, unknown>).__iappReception = { wa, filters, share, ledger, theme, fu };
