@@ -57,7 +57,11 @@ export async function setShowNames(id: string, show: boolean): Promise<void> {
   if (error) throw new Error(reportError(error, 'شاشات الانتظار'));
 }
 
-/** The address to open on the TV. Built from the page's own origin + the app's base path. */
+/**
+ * The address to open on the TV. Built from the page's own origin + the app's
+ * base path. The trailing slash matters: GitHub Pages serves display/index.html
+ * (a real file, status 200) for it; without the slash Pages must redirect first.
+ */
 export function displayUrl(token: string): string {
-  return `${window.location.origin}${import.meta.env.BASE_URL}display?t=${token}`;
+  return `${window.location.origin}${import.meta.env.BASE_URL}display/?t=${token}`;
 }
