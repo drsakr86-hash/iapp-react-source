@@ -135,3 +135,18 @@ export function orderWaitingQueue<T extends Pick<BoardRow, 'status' | 'scheduled
         String(a.scheduled_time ?? '99:99').localeCompare(String(b.scheduled_time ?? '99:99')),
     );
 }
+
+/**
+ * A patient's own appointments, split for the "my appointments" page.
+ * Upcoming: nearest first (the one he has to attend next is on top).
+ * Past: most recent first. `today` is the clinic-local YYYY-MM-DD.
+ */
+export function splitMyAppointments<T extends { scheduled_date: string; scheduled_time: string }>(
+  rows: T[],
+  today: string,
+): { upcoming: T[]; past: T[] } {
+  const key = (r: T) => `${r.scheduled_date} ${r.scheduled_time}`;
+  const upcoming = rows.filter((r) => r.scheduled_date >= today).sort((a, b) => key(a).localeCompare(key(b)));
+  const past = rows.filter((r) => r.scheduled_date < today).sort((a, b) => key(b).localeCompare(key(a)));
+  return { upcoming, past };
+}

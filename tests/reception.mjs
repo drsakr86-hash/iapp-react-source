@@ -264,6 +264,22 @@ h('13. مدفوعات مريض محذوف');
   ok('CSV يكتب التسمية لا الـ id', ledger.ledgerToCsv(rows, { patientName: () => ledger.DELETED_PATIENT_LABEL, serviceName: () => undefined, methodAr: (m) => m, statusAr: (x) => x, dateLabel: (d) => d.slice(0, 10) }).includes('مريض محذوف'));
 }
 
+{
+  h('مواعيدي — القادمة الأقرب أولًا');
+  const mine = [
+    { id: 'p1', scheduled_date: '2026-10-01', scheduled_time: '10:00:00' },
+    { id: 'u3', scheduled_date: '2026-10-20', scheduled_time: '09:00:00' },
+    { id: 'u1', scheduled_date: '2026-10-14', scheduled_time: '18:30:00' },
+    { id: 'p2', scheduled_date: '2026-10-10', scheduled_time: '12:00:00' },
+    { id: 'u2', scheduled_date: '2026-10-14', scheduled_time: '19:00:00' },
+  ];
+  const sp = filters.splitMyAppointments(mine, '2026-10-14');
+  eq('القادمة تصاعديًا بالتاريخ ثم الوقت', sp.upcoming.map((r) => r.id), ['u1', 'u2', 'u3']);
+  eq('السابقة الأحدث أولًا', sp.past.map((r) => r.id), ['p2', 'p1']);
+  eq('اليوم نفسه يُحسب قادمًا', filters.splitMyAppointments([mine[2]], '2026-10-14').upcoming.length, 1);
+  eq('فارغ', filters.splitMyAppointments([], '2026-10-14'), { upcoming: [], past: [] });
+}
+
 console.log();
 if (failures.length) {
   console.log('\x1b[31m✗ فشل ' + failures.length + ' من ' + (pass + failures.length) + '\x1b[0m');
