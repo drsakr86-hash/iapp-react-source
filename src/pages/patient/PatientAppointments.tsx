@@ -5,6 +5,7 @@ import * as portal from '../../services/patientPortal';
 import { statusLabel } from '../../services/appointments';
 import { BookAppointmentModal } from '../../components/patient/BookAppointmentModal';
 import * as M from '../../utils/models';
+import { splitMyAppointments } from '../../utils/appointmentFilters';
 
 export default function PatientAppointments() {
   useDocumentTitle('مواعيدي');
@@ -32,8 +33,7 @@ export default function PatientAppointments() {
   }, [load]);
 
   const today = M.today();
-  const upcoming = rows.filter((r) => r.scheduled_date >= today);
-  const past = rows.filter((r) => r.scheduled_date < today);
+  const { upcoming, past } = splitMyAppointments(rows, today);
 
   return (
     <div className="stack">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Field, Input, Modal, Spinner } from '../ui';
 import { useToast } from '../../hooks/useToast';
 import * as portal from '../../services/patientPortal';
@@ -22,6 +22,9 @@ export function BookAppointmentModal({
   const [date, setDate] = useState(M.today());
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const [slotsTry, setSlotsTry] = useState(0);
+  const submitting = useRef(false);
   const [time, setTime] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,22 +50,23 @@ export function BookAppointmentModal({
     };
   }, []);
 
-  // Slots re-fetch whenever clinic or date changes — the grid of open
-  // times is only meaningful for one specific clinic+day. When either is
-  // unset the fetch is simply skipped; stale `slots` from a previous
-  // clinic/date never renders because the JSX below only shows the slot
-  // grid while both clinicId and date are set.
+  // Slots re-fetch whenever clinic or date changes (or on "retry"). Anything
+  // from the previous clinic/day is cleared FIRST, so a failed fetch can never
+  // leave an old grid on screen that looks selectable for the new choice.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    setSlots([]);
+    setTime('');
+    setSlotsError(null);
     if (!clinicId || !date) return;
     let alive = true;
     (async () => {
       setSlotsLoading(true);
-      setTime('');
       try {
         const rows = await availableSlots(clinicId, date);
         if (alive) setSlots(rows);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : 'تعذّر تحميل الأوقات المتاحة');
+        if (alive) setSlotsError(e instanceof Error ? e.message : 'تعذّر تحميل الأوقات المتاحة');
       } finally {
         if (alive) setSlotsLoading(false);
       }
@@ -70,10 +74,11 @@ export function BookAppointmentModal({
     return () => {
       alive = false;
     };
-  }, [clinicId, date]);
+  }, [clinicId, date, slotsTry]);
 
   async function submit() {
-    if (busy) return;
+    if (busy || submitting.current) return;
+    submitting.current = true;
     setError(null);
     setBusy(true);
     try {
@@ -84,6 +89,7 @@ export function BookAppointmentModal({
     } catch (e) {
       setError(e instanceof Error ? e.message : 'تعذّر حجز الموعد');
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -117,7 +123,15 @@ export function BookAppointmentModal({
         {clinicId && date ? (
           <Field label="الوقت">
             {slotsLoading ? <Spinner label="جارٍ تحميل الأوقات المتاحة…" /> : null}
-            {!slotsLoading && slots.length === 0 ? (
+            {!slotsLoading && slotsError ? (
+              <div className="stack" style={{ gap: 8 }}>
+                <p className="alert">{slotsError}</p>
+                <Button variant="outline" onClick={() => setSlotsTry((n) => n + 1)}>
+                  إعادة المحاولة
+                </Button>
+              </div>
+            ) : null}
+            {!slotsLoading && !slotsError && slots.length === 0 ? (
               <p className="muted">لا توجد أوقات متاحة في هذا اليوم.</p>
             ) : null}
             {!slotsLoading && slots.length > 0 ? (
