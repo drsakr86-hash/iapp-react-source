@@ -30,6 +30,7 @@ const DoctorPaymentReceipt = lazy(() => import('../pages/doctor/DoctorPaymentRec
 const DoctorMore = lazy(() => import('../pages/doctor/DoctorMore'));
 const DoctorProfile = lazy(() => import('../pages/doctor/DoctorProfile'));
 const DoctorDisplays = lazy(() => import('../pages/doctor/DoctorDisplays'));
+const DoctorChecklists = lazy(() => import('../pages/doctor/DoctorChecklists'));
 const QueueDisplay = lazy(() => import('../pages/display/QueueDisplay'));
 const SecretaryHome = lazy(() => import('../pages/secretary/SecretaryHome'));
 const PatientHome = lazy(() => import('../pages/patient/PatientHome'));
@@ -92,6 +93,7 @@ export function AppRoutes() {
             <Route path="services" element={<AdminServices />} />
             <Route path="lists" element={<DropdownSettings />} />
             <Route path="displays" element={<DoctorDisplays />} />
+            <Route path="checklists" element={<DoctorChecklists />} />
             <Route path="payments" element={<DoctorPayments />} />
             <Route path="payments/:paymentId/receipt" element={<DoctorPaymentReceipt />} />
             {/* Visit, examination, diagnosis, prescriptions, imaging, and
