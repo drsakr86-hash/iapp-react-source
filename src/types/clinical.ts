@@ -138,6 +138,8 @@ export interface Examination {
   /* joined client-side */
   _iop_od?: IopMeasurement | null;
   _iop_os?: IopMeasurement | null;
+  /** True when the IOP read failed — distinct from "no IOP recorded". */
+  _iop_unavailable?: boolean;
   _ref_od?: Refraction | null;
   _ref_os?: Refraction | null;
   _findings?: ExamFinding[];

@@ -73,6 +73,11 @@ export function ExamCard({ exam }: { exam: Examination }) {
             </b>
           </span>
         ) : null}
+        {iopOd == null && iopOs == null && exam._iop_unavailable ? (
+          <span className="exam__iop" style={{ color: 'var(--danger)' }}>
+            تعذّر تحميل الضغط
+          </span>
+        ) : null}
         <span className="exam__chev">{open ? '▲' : '▼'}</span>
       </button>
 
