@@ -67,6 +67,10 @@ export function useDraftState<T>(scope: string[] | null, initial: () => T): Draf
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pagehide', flush);
+      /* Closing the form inside the debounce window must not lose the last
+         change — in particular the "partial save" marker, without which a
+         reopened exam form would create a second exam. */
+      flush();
     };
   }, [key]);
 

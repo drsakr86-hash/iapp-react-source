@@ -13,9 +13,13 @@
  *     method control on edit for the same reason.
  *
  *  2. createFull is not atomic — PostgREST has no transaction over REST. The
- *     exam saves first and later failures come back as `warnings`. Those are
- *     surfaced verbatim and for longer than a normal toast, because "saved,
- *     but the IOP didn't store" is something the doctor must actually read.
+ *     exam saves first and later parts (IOP, findings, refraction, diagnosis,
+ *     follow-up) can fail on their own. A partial save is NOT treated as
+ *     saved: the form stays open, the draft is kept, a fixed panel lists what
+ *     did not store, and "save" then retries exactly those parts on the SAME
+ *     exam (examinations.retryParts). It never creates a second exam. The
+ *     pending state is kept inside the draft, so closing and reopening the
+ *     form resumes the retry instead of offering a fresh "save".
  *
  * No <datalist> anywhere: it is broken on Android. Suggestions are a <select>
  * that writes into a free-text <input>, which is the legacy pattern.
@@ -154,12 +158,18 @@ export function ExaminationForm({
   /* In-progress text is kept as a local draft (see utils/draftStore): a
      dropped connection or an accidental close no longer loses the exam.
      A new exam is scoped to patient+visit; an edit to that exam's id. */
-  const draft = useDraftState<{ f: Record<string, string>; findings: FindingState }>(
+  const draft = useDraftState<{
+    f: Record<string, string>;
+    findings: FindingState;
+    /** Set after a partial save: the exam exists, these parts are still owed. */
+    partial?: { examId: string; failed: examinationsSvc.ExamPart[]; warnings: string[] } | null;
+  }>(
     exam ? ['exam-edit', exam.id] : ['exam', patient.id, visitId ?? 'none'],
     () => ({ f: initialF(), findings: initialFindings() }),
   );
   const f = draft.value.f;
   const findings = draft.value.findings;
+  const partial = draft.value.partial ?? null;
   const setF = (u: (p: Record<string, string>) => Record<string, string>) =>
     draft.set((d) => ({ ...d, f: u(d.f) }));
   const setFindings = (u: (p: FindingState) => FindingState) =>
@@ -248,14 +258,18 @@ export function ExaminationForm({
     setBusy(true);
     try {
       if (isNew) {
-        const r = await examinationsSvc.createFull(row);
-        if (r.warnings.length) {
-          // Partial success is not success. Shown long, and worded so it is
-          // clear the exam itself did save.
-          toast.error('حُفظ الفحص — لكن: ' + r.warnings.join(' · '));
-        } else {
-          toast.success('تم حفظ الفحص');
+        // After a partial save the exam already exists: retry only what is
+        // owed, on that exam. Otherwise create it.
+        const r = partial
+          ? await examinationsSvc.retryParts(partial.examId, row, partial.failed)
+          : await examinationsSvc.createFull(row);
+        if (r.failed.length) {
+          const examId = partial ? partial.examId : (r as examinationsSvc.CreateFullResult).exam.id;
+          draft.set((d) => ({ ...d, partial: { examId, failed: r.failed, warnings: r.warnings } }));
+          toast.error('لم يكتمل حفظ الفحص — راجع التنبيه أسفل النموذج');
+          return;
         }
+        toast.success(partial ? 'اكتمل حفظ الفحص' : 'تم حفظ الفحص');
       } else {
         await examinationsSvc.update(exam.id, row);
         toast.success('تم حفظ التعديل');
@@ -430,7 +444,9 @@ export function ExaminationForm({
       onClose={onClose}
       wide
     >
-      <DraftBanner restoredAt={draft.restoredAt} onDiscard={draft.discard} />
+      {/* "Start over" is not offered while parts are owed: it would forget the
+          saved exam and the next save would create a duplicate. */}
+      {partial ? null : <DraftBanner restoredAt={draft.restoredAt} onDiscard={draft.discard} />}
       <div className="grid-2">
         <Field label="تاريخ الفحص *">
           <Input
@@ -596,13 +612,39 @@ export function ExaminationForm({
 
       {error ? <p className="alert">{error}</p> : null}
 
-      <div className="row" style={{ marginBlockStart: 14 }}>
+      {partial ? (
+        <div className="alert" role="alert">
+          <strong>الفحص حُفظ، لكن هذه الأجزاء لم تُحفظ:</strong>
+          <ul style={{ margin: '6px 0', paddingInlineStart: 18 }}>
+            {partial.warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+          صحّح القيمة إن لزم ثم اضغط «إعادة حفظ الأجزاء الناقصة». لن يُنشأ فحص جديد.
+        </div>
+      ) : null}
+
+      <div className="row" style={{ marginBlockStart: 14, flexWrap: 'wrap', gap: 8 }}>
         <Button onClick={() => void save()} disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ الفحص'}
+          {busy ? 'جارٍ الحفظ…' : partial ? 'إعادة حفظ الأجزاء الناقصة' : 'حفظ الفحص'}
         </Button>
-        <Button variant="outline" onClick={onClose} disabled={busy}>
-          إلغاء
-        </Button>
+        {partial ? (
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              // The doctor accepts the exam without the missing parts.
+              draft.clear();
+              onSaved();
+            }}
+          >
+            إغلاق بدون هذه الأجزاء
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            إلغاء
+          </Button>
+        )}
       </div>
     </Modal>
   );

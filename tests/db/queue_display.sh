@@ -377,10 +377,12 @@ out=$(as_user "$SEC2" "select count(*) from iapp.queue_calls;"); eq "other clini
 out=$(as_user "$SEC" "select count(*) from iapp.v_queue_tickets;"); eq "ticket view is RLS-scoped (security_invoker)" "$out" "$(su_sql "select count(*) from iapp.v_queue_tickets where clinic_id='$CLINIC'")"
 # the complete → visit flow still works for the called patient
 out=$(as_user "$DOC" "select status from iapp.complete_appointment('$(aid 7)');"); has "end of exam (complete_appointment) unchanged" "$out" "COMPLETED"
-# INFORMATIONAL (not an assertion about this migration): iapp.transition() checks the caller's ROLE but not
-# the caller's CLINIC, so a secretary of clinic 1 can move a clinic-2 appointment if she knows its id.
-out=$(as_user "$SEC" "select status from iapp.cancel_appointment('$(aid 6)', 'سبب الاختبار');")
-if printf '%s' "$out" | grep -q CANCELLED; then echo "  FINDING (pre-existing, unrelated to this migration): a clinic-1 secretary cancelled a clinic-2 appointment through iapp.cancel_appointment — iapp.transition has no clinic-scope check."; fi
+# Clinic scope (migration 20261111000000): reception acts only inside its own clinics.
+out=$(as_user "$SEC" "select status from iapp.cancel_appointment('$(aid 6)', 'سبب الاختبار');" 2>&1)
+has "clinic-1 secretary cannot change a clinic-2 appointment" "$out" "not_found"
+eq "…and it really was left untouched" "$(su_sql "select status <> 'CANCELLED' from iapp.appointments where id='$(aid 6)'")" "t"
+out=$(as_user "$SEC2" "select status from iapp.cancel_appointment('$(aid 6)', 'سبب الاختبار');" 2>&1)
+has "the clinic's own secretary still can" "$out" "CANCELLED"
 
 echo
 echo "============================================================"

@@ -152,6 +152,7 @@ export const findings = {
 async function saveExamRefraction(
   examId: string,
   data: Record<string, unknown>,
+  skipEyes: Set<string> = new Set(),
 ): Promise<string | null> {
   const rows: Array<TablesInsert<{ schema: 'iapp' }, 'refractions'>> = [];
 
@@ -163,7 +164,7 @@ async function saveExamRefraction(
       const v = data[`ref_${k}_${x}`];
       return v != null && v !== '';
     });
-    if (!has) continue;
+    if (!has || skipEyes.has(eye)) continue;
 
     rows.push({
       patient_id: String(data.patient_id),
@@ -453,9 +454,22 @@ export const followUps = {
  * Examinations
  * ══════════════════════════════════════════════════════ */
 
-export interface CreateFullResult {
-  exam: Examination;
+/**
+ * The parts of an examination that live in their own tables. PostgREST has no
+ * transaction over REST, so each is written after the exam row and any of them
+ * can fail on its own.
+ */
+export type ExamPart = 'iop' | 'findings' | 'refraction' | 'diagnosis' | 'follow_up';
+
+export interface PartsResult {
+  /** Human-readable, one per failure. Empty = everything stored. */
   warnings: string[];
+  /** Which parts did not store, so the form can retry exactly those. */
+  failed: ExamPart[];
+}
+
+export interface CreateFullResult extends PartsResult {
+  exam: Examination;
 }
 
 export async function listByPatient(pid: string, limit = 30): Promise<Examination[]> {
@@ -472,15 +486,27 @@ export async function listByPatient(pid: string, limit = 30): Promise<Examinatio
   if (!exams.length) return [];
 
   const ids = exams.map((e) => e.id);
-  const iop = await supabase.from('iop_measurements').select('*').in('examination_id', ids);
-  const I = (iop.error ? [] : (iop.data ?? [])) as unknown as IopMeasurement[];
+  const iop = await supabase
+    .from('iop_measurements')
+    .select('*')
+    .in('examination_id', ids)
+    .is('deleted_at', null);
+  const I = latestFirst((iop.error ? [] : (iop.data ?? [])) as unknown as IopMeasurement[]);
 
   // IOP is joined per exam so the screen doesn't need a second query.
   for (const e of exams) {
     e._iop_od = I.find((x) => x.examination_id === e.id && x.eye === 'OD') ?? null;
     e._iop_os = I.find((x) => x.examination_id === e.id && x.eye === 'OS') ?? null;
+    // A failed read is not "no pressure recorded": the screen must say so.
+    e._iop_unavailable = !!iop.error;
   }
   return exams;
+}
+
+/** Newest reading first, so `.find()` returns the latest one for an eye. */
+function latestFirst(rows: IopMeasurement[]): IopMeasurement[] {
+  const t = (x: IopMeasurement) => Date.parse(x.measured_at ?? '') || 0;
+  return [...rows].sort((a, b) => t(b) - t(a));
 }
 
 export async function createFull(data: Record<string, unknown>): Promise<CreateFullResult> {
@@ -516,76 +542,157 @@ export async function createFull(data: Record<string, unknown>): Promise<CreateF
   if (ex.error) throw svcError(ex.error, 'حفظ الفحص', CLINICAL_ERRORS);
 
   const exam = ex.data as unknown as Examination;
+  const parts = await saveExamParts(exam.id, data, ALL_PARTS, false);
+  return { exam, ...parts };
+}
+
+const ALL_PARTS: ExamPart[] = ['iop', 'findings', 'refraction', 'diagnosis', 'follow_up'];
+
+/**
+ * Re-save only the parts that failed, on the SAME examination. Never creates a
+ * second exam. Before inserting it looks at what is already stored for this
+ * exam and skips it, so pressing retry twice (or retrying after a response was
+ * lost on a bad connection) cannot duplicate a reading or a diagnosis.
+ */
+export async function retryParts(
+  examId: string,
+  data: Record<string, unknown>,
+  parts: ExamPart[],
+): Promise<PartsResult> {
+  return saveExamParts(examId, data, parts, true);
+}
+
+/** Eyes that already have a live row for this exam in `table`. */
+async function storedEyes(
+  table: 'iop_measurements' | 'refractions',
+  examId: string,
+): Promise<{ eyes: Set<string>; error: string | null }> {
+  const r = await supabase.from(table).select('eye').eq('examination_id', examId).is('deleted_at', null);
+  if (r.error) return { eyes: new Set(), error: r.error.message };
+  return { eyes: new Set(((r.data ?? []) as Array<{ eye: string }>).map((x) => x.eye)), error: null };
+}
+
+async function hasStored(table: 'diagnoses' | 'follow_ups', examId: string): Promise<{ any: boolean; error: string | null }> {
+  const r = await supabase.from(table).select('id').eq('examination_id', examId).is('deleted_at', null).limit(1);
+  if (r.error) return { any: false, error: r.error.message };
+  return { any: (r.data ?? []).length > 0, error: null };
+}
+
+async function saveExamParts(
+  examId: string,
+  data: Record<string, unknown>,
+  parts: ExamPart[],
+  checkExisting: boolean,
+): Promise<PartsResult> {
   const warnings: string[] = [];
+  const failed = new Set<ExamPart>();
+  const fail = (part: ExamPart, message: string) => {
+    failed.add(part);
+    warnings.push(message);
+  };
+  const want = (p: ExamPart) => parts.includes(p);
 
-  const iops: Array<TablesInsert<{ schema: 'iapp' }, 'iop_measurements'>> = [];
-  for (const [key, eye] of [
-    ['iop_right', 'OD'],
-    ['iop_left', 'OS'],
-  ] as const) {
-    const val = M.num(data[key]);
-    if (val == null) continue;
-    if (val < 0 || val > 80) {
-      warnings.push('ضغط ' + (eye === 'OD' ? 'اليمنى' : 'اليسرى') + ' خارج المدى — لم يُحفظ');
-      continue;
+  if (want('iop')) {
+    let skip = new Set<string>();
+    let blocked = false;
+    if (checkExisting) {
+      const st = await storedEyes('iop_measurements', examId);
+      // Cannot tell what is stored -> do not insert blind (would duplicate).
+      if (st.error) {
+        fail('iop', 'ضغط العين لم يُحفظ: ' + st.error);
+        blocked = true;
+      }
+      skip = st.eyes;
     }
-    const row: TablesInsert<{ schema: 'iapp' }, 'iop_measurements'> = {
-      patient_id: String(data.patient_id),
-      examination_id: exam.id,
-      visit_id: M.str(data.visit_id),
-      eye,
-      value_mmhg: val,
-    };
-    // Method and time are part of the measurement, not decoration: two
-    // readings from two devices are not comparable.
-    if (M.str(data.iop_method)) row.method = M.str(data.iop_method);
-    if (M.str(data.iop_at)) row.measured_at = M.str(data.iop_at) ?? undefined;
-    iops.push(row);
-  }
-  if (iops.length) {
-    const ir = await supabase.from('iop_measurements').insert(iops);
-    if (ir.error) warnings.push('ضغط العين لم يُحفظ: ' + ir.error.message);
-  }
-
-  const fw = await findings.replace(
-    exam.id,
-    String(data.patient_id),
-    data.findings as Array<{ eye: Eye; field: string; value: unknown }> | undefined,
-  );
-  if (fw) warnings.push(fw);
-
-  const rw = await saveExamRefraction(exam.id, data);
-  if (rw) warnings.push(rw);
-
-  if (M.str(data.diagnosis_text)) {
-    const diagnosisPayload: TablesInsert<{ schema: 'iapp' }, 'diagnoses'> = {
-      patient_id: String(data.patient_id),
-      visit_id: M.str(data.visit_id),
-      examination_id: exam.id,
-      doctor_id: M.str(data.doctor_id),
-      diagnosis_text: M.str(data.diagnosis_text) ?? '',
-      eye: data.diagnosis_eye as TablesInsert<{ schema: 'iapp' }, 'diagnoses'>['eye'],
-      is_primary: true,
-      diagnosed_on: M.str(data.exam_date) ?? M.today(),
-    };
-    const dr = await supabase.from('diagnoses').insert(diagnosisPayload);
-    if (dr.error) warnings.push('التشخيص لم يُحفظ: ' + dr.error.message);
+    const iops: Array<TablesInsert<{ schema: 'iapp' }, 'iop_measurements'>> = [];
+    for (const [key, eye] of [
+      ['iop_right', 'OD'],
+      ['iop_left', 'OS'],
+    ] as const) {
+      const val = M.num(data[key]);
+      if (val == null || skip.has(eye)) continue;
+      if (val < 0 || val > 80) {
+        fail('iop', 'ضغط ' + (eye === 'OD' ? 'اليمنى' : 'اليسرى') + ' خارج المدى — لم يُحفظ');
+        continue;
+      }
+      const row: TablesInsert<{ schema: 'iapp' }, 'iop_measurements'> = {
+        patient_id: String(data.patient_id),
+        examination_id: examId,
+        visit_id: M.str(data.visit_id),
+        eye,
+        value_mmhg: val,
+      };
+      // Method and time are part of the measurement, not decoration: two
+      // readings from two devices are not comparable.
+      if (M.str(data.iop_method)) row.method = M.str(data.iop_method);
+      if (M.str(data.iop_at)) row.measured_at = M.str(data.iop_at) ?? undefined;
+      iops.push(row);
+    }
+    if (iops.length && !blocked) {
+      const ir = await supabase.from('iop_measurements').insert(iops);
+      if (ir.error) fail('iop', 'ضغط العين لم يُحفظ: ' + ir.error.message);
+    }
   }
 
-  if (M.isDate(data.follow_up_date)) {
-    const followUpPayload: TablesInsert<{ schema: 'iapp' }, 'follow_ups'> = {
-      patient_id: String(data.patient_id),
-      visit_id: M.str(data.visit_id),
-      examination_id: exam.id,
-      clinic_id: M.str(data.clinic_id),
-      due_date: String(data.follow_up_date),
-      reason: M.str(data.follow_up_reason) || 'متابعة',
-    };
-    const fr = await supabase.from('follow_ups').insert(followUpPayload);
-    if (fr.error) warnings.push('المتابعة لم تُحفظ: ' + fr.error.message);
+  if (want('findings')) {
+    // replace() soft-deletes then inserts, so running it again is safe.
+    const fw = await findings.replace(
+      examId,
+      String(data.patient_id),
+      data.findings as Array<{ eye: Eye; field: string; value: unknown }> | undefined,
+    );
+    if (fw) fail('findings', fw);
   }
 
-  return { exam, warnings };
+  if (want('refraction')) {
+    let skip = new Set<string>();
+    let err: string | null = null;
+    if (checkExisting) {
+      const st = await storedEyes('refractions', examId);
+      skip = st.eyes;
+      err = st.error;
+    }
+    const rw = err ? 'الانكسار لم يُحفظ: ' + err : await saveExamRefraction(examId, data, skip);
+    if (rw) fail('refraction', rw);
+  }
+
+  if (want('diagnosis') && M.str(data.diagnosis_text)) {
+    const st = checkExisting ? await hasStored('diagnoses', examId) : { any: false, error: null };
+    if (st.error) fail('diagnosis', 'التشخيص لم يُحفظ: ' + st.error);
+    else if (!st.any) {
+      const diagnosisPayload: TablesInsert<{ schema: 'iapp' }, 'diagnoses'> = {
+        patient_id: String(data.patient_id),
+        visit_id: M.str(data.visit_id),
+        examination_id: examId,
+        doctor_id: M.str(data.doctor_id),
+        diagnosis_text: M.str(data.diagnosis_text) ?? '',
+        eye: data.diagnosis_eye as TablesInsert<{ schema: 'iapp' }, 'diagnoses'>['eye'],
+        is_primary: true,
+        diagnosed_on: M.str(data.exam_date) ?? M.today(),
+      };
+      const dr = await supabase.from('diagnoses').insert(diagnosisPayload);
+      if (dr.error) fail('diagnosis', 'التشخيص لم يُحفظ: ' + dr.error.message);
+    }
+  }
+
+  if (want('follow_up') && M.isDate(data.follow_up_date)) {
+    const st = checkExisting ? await hasStored('follow_ups', examId) : { any: false, error: null };
+    if (st.error) fail('follow_up', 'المتابعة لم تُحفظ: ' + st.error);
+    else if (!st.any) {
+      const followUpPayload: TablesInsert<{ schema: 'iapp' }, 'follow_ups'> = {
+        patient_id: String(data.patient_id),
+        visit_id: M.str(data.visit_id),
+        examination_id: examId,
+        clinic_id: M.str(data.clinic_id),
+        due_date: String(data.follow_up_date),
+        reason: M.str(data.follow_up_reason) || 'متابعة',
+      };
+      const fr = await supabase.from('follow_ups').insert(followUpPayload);
+      if (fr.error) fail('follow_up', 'المتابعة لم تُحفظ: ' + fr.error.message);
+    }
+  }
+
+  return { warnings, failed: [...failed] };
 }
 
 export async function update(id: string, data: Record<string, unknown>): Promise<Examination> {
@@ -646,7 +753,8 @@ export async function getFull(id: string): Promise<Examination> {
     .select('*')
     .eq('examination_id', id)
     .is('deleted_at', null);
-  const I = (iop.error ? [] : (iop.data ?? [])) as unknown as IopMeasurement[];
+  const I = latestFirst((iop.error ? [] : (iop.data ?? [])) as unknown as IopMeasurement[]);
+  e._iop_unavailable = !!iop.error;
   e._iop_od = I.find((x) => x.eye === 'OD') ?? null;
   e._iop_os = I.find((x) => x.eye === 'OS') ?? null;
 
